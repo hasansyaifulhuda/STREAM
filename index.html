@@ -268,6 +268,7 @@
         let currentEditingDriveId = null;
         let previewItemsQueue = [];
 
+        // Fisher-Yates Array Shuffle Algorithm for Poster Grid Randomization
         function shuffleArray(array) {
             const arr = [...array];
             for (let i = arr.length - 1; i > 0; i--) {
@@ -282,6 +283,7 @@
             if (path.startsWith('http://') || path.startsWith('https://')) return path;
             const cleanPath = path.startsWith('/') ? path : '/' + path;
 
+            // Handle blob: URLs, file: protocol, or sandboxed environments where relative URLs fail in fetch()
             if (window.location.href.startsWith('blob:') || window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null') {
                 if (window.location.origin && window.location.origin !== 'null' && (window.location.origin.startsWith('http://') || window.location.origin.startsWith('https://'))) {
                     return `${window.location.origin}${cleanPath}`;
@@ -320,6 +322,7 @@
                 }
                 const data = await res.json();
                 if (data && Array.isArray(data.movies)) {
+                    // Randomize catalog items on load / refresh
                     moviesData = shuffleArray(data.movies);
                 } else {
                     moviesData = [];
