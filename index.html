@@ -449,20 +449,20 @@
 
             filtered.forEach(movie => {
                 const card = document.createElement('div');
-                card.className = "group relative bg-zinc-900/70 rounded-2xl overflow-hidden border border-zinc-800/80 hover:border-blue-500/50 transition-all duration-300 flex flex-col cursor-pointer shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-1.5";
+                card.className = "group relative bg-zinc-900/70 rounded-2xl overflow-hidden border border-zinc-800/80 hover:border-blue-500/50 transition-all duration-300 flex flex-col cursor-pointer shadow-lg hover:shadow-2xl hover:shadow-blue-500/10";
                 card.onclick = () => openPlayer(movie);
 
                 const safePoster = movie.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
 
                 card.innerHTML = `
                     <div class="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950">
-                        <img src="${safePoster}" alt="${movie.title}" onerror="this.src='https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800'" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <img src="${safePoster}" alt="${movie.title}" onerror="this.src='https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800'" class="w-full h-full object-fill">
                         <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-80"></div>
-                        <div class="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 bg-blue-600/90 text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-lg shadow backdrop-blur-md">
+                        <div class="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 bg-blue-600/90 text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-lg shadow backdrop-blur-md z-10">
                             ${movie.year || '2026'}
                         </div>
-                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 bg-black/40 backdrop-blur-[2px]">
-                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/40 transform group-hover:scale-110 transition duration-300">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 bg-black/40 backdrop-blur-[2px] z-10">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/40">
                                 <i class="fas fa-play text-xs sm:text-sm ml-0.5"></i>
                             </div>
                         </div>
