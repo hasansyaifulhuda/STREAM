@@ -34,15 +34,12 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #3f3f46;
         }
-        .content-visibility-auto {
-            content-visibility: auto;
-            contain-intrinsic-size: 0 300px;
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white">
 
     <header class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 sm:gap-4">
+        <!-- Custom Dropdown Menu (Drops Down Directly Under the Nav Button) -->
         <div class="relative shrink-0" id="category-dropdown-container">
             <button onclick="toggleCategoryDropdown()" id="category-dropdown-btn" 
                 class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 cursor-pointer transition shadow-sm flex items-center gap-2">
@@ -50,17 +47,21 @@
                 <i id="category-dropdown-arrow" class="fas fa-chevron-down text-[10px] text-zinc-400 transition-transform duration-200"></i>
             </button>
             
+            <!-- Menu Container (Positioned Absolute Top-Full to Drop DOWN) -->
             <div id="category-dropdown-menu" 
                 class="hidden absolute left-0 top-full mt-2 w-52 bg-zinc-900/95 border border-zinc-800/90 backdrop-blur-md rounded-2xl shadow-2xl z-50 py-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+                <!-- Category items dynamically populated by JS -->
             </div>
         </div>
 
+        <!-- Search Bar (Fully Responsive for HP & Desktop) -->
         <div class="relative flex-1 max-w-xs sm:max-w-md">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500"></i>
             <input type="text" oninput="handleSearch(this.value)" placeholder="Cari film atau anime..." 
                 class="w-full bg-zinc-900 text-xs text-white pl-8 pr-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 transition">
         </div>
 
+        <!-- Admin Uploader Button -->
         <button onclick="openAdminLogin()" class="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-sm">
             <i class="fas fa-sliders-h text-xs"></i>
             <span class="hidden sm:inline">Uploader</span>
@@ -130,6 +131,7 @@
                 </button>
             </div>
 
+            <!-- Dashboard Navigation Tabs -->
             <div class="flex items-center gap-2 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800 mb-4 shrink-0">
                 <button id="btn-tab-upload" onclick="switchAdminTab('upload')" class="flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition bg-blue-600 text-white shadow-lg shadow-blue-600/30">
                     <i class="fas fa-cloud-upload-alt mr-1"></i> 1. Remote Uploader Batch
@@ -139,6 +141,7 @@
                 </button>
             </div>
 
+            <!-- Tab 1: Remote Uploader Form -->
             <div id="view-tab-upload" class="space-y-3.5 overflow-y-auto custom-scrollbar pr-1 flex-1 flex flex-col">
                 <div>
                     <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Direct Video URL / Link MovieBox (Bisa Paste Hingga 10 Link, 1 Per Baris)</label>
@@ -152,12 +155,14 @@
                     </div>
                 </div>
 
+                <!-- Preview Items List Container -->
                 <div id="preview-items-container" class="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[120px]">
                     <div class="text-center py-8 text-zinc-600 text-xs italic">
                         Paste link di atas lalu klik "Preview Metadata" untuk meninjau & mengedit informasi film sebelum di-upload.
                     </div>
                 </div>
 
+                <!-- Batch Upload Progress Bar with Speed Counter -->
                 <div id="upload-progress-container" class="hidden space-y-1.5 pt-2 border-t border-zinc-800/80">
                     <div class="flex justify-between items-center text-[11px] font-semibold">
                         <span id="upload-progress-status" class="text-zinc-400 truncate">Memproses...</span>
@@ -179,6 +184,7 @@
                 </div>
             </div>
 
+            <!-- Tab 2: Manage & Edit/Delete List -->
             <div id="view-tab-manage" class="hidden flex-grow overflow-y-auto">
                 <div id="manage-list-container"></div>
             </div>
@@ -261,10 +267,8 @@
         let currentDeletingDriveId = null;
         let currentEditingDriveId = null;
         let previewItemsQueue = [];
-        let currentPlayingDriveId = null;
-        let lastPlaybackPosition = 0;
-        let isReconnecting = false;
 
+        // Fisher-Yates Array Shuffle Algorithm for Poster Grid Randomization
         function shuffleArray(array) {
             const arr = [...array];
             for (let i = arr.length - 1; i > 0; i--) {
@@ -279,6 +283,7 @@
             if (path.startsWith('http://') || path.startsWith('https://')) return path;
             const cleanPath = path.startsWith('/') ? path : '/' + path;
 
+            // Handle blob: URLs, file: protocol, or sandboxed environments where relative URLs fail in fetch()
             if (window.location.href.startsWith('blob:') || window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null') {
                 if (window.location.origin && window.location.origin !== 'null' && (window.location.origin.startsWith('http://') || window.location.origin.startsWith('https://'))) {
                     return `${window.location.origin}${cleanPath}`;
@@ -305,4 +310,673 @@
             }
 
             setTimeout(() => {
-                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white sha
+                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none";
+            }, 4000);
+        }
+
+        async function fetchMovies() {
+            try {
+                const res = await fetch(getApiUrl('/api/movies'));
+                if (!res.ok) {
+                    throw new Error(`HTTP status ${res.status}`);
+                }
+                const data = await res.json();
+                if (data && Array.isArray(data.movies)) {
+                    // Randomize catalog items on load / refresh
+                    moviesData = shuffleArray(data.movies);
+                } else {
+                    moviesData = [];
+                }
+            } catch (err) {
+                console.error("Error fetching movies:", err);
+                moviesData = moviesData || [];
+            } finally {
+                updateDynamicCategories();
+                renderCatalog();
+                if (adminPassword) {
+                    renderManageList();
+                }
+            }
+        }
+
+        function toggleCategoryDropdown() {
+            const menu = document.getElementById('category-dropdown-menu');
+            const arrow = document.getElementById('category-dropdown-arrow');
+            if (!menu) return;
+
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                menu.classList.remove('hidden');
+                if (arrow) arrow.classList.add('rotate-180');
+            } else {
+                menu.classList.add('hidden');
+                if (arrow) arrow.classList.remove('rotate-180');
+            }
+        }
+
+        function closeCategoryDropdown() {
+            const menu = document.getElementById('category-dropdown-menu');
+            const arrow = document.getElementById('category-dropdown-arrow');
+            if (menu) menu.classList.add('hidden');
+            if (arrow) arrow.classList.remove('rotate-180');
+        }
+
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('category-dropdown-container');
+            if (container && !container.contains(e.target)) {
+                closeCategoryDropdown();
+            }
+        });
+
+        function selectCategoryOption(cat) {
+            selectedCategory = cat;
+            const label = document.getElementById('selected-category-label');
+            if (label) {
+                label.textContent = cat === 'ALL' ? 'Kategori: Semua' : `Kategori: ${cat}`;
+            }
+            closeCategoryDropdown();
+            updateDynamicCategories();
+            renderCatalog();
+        }
+
+        function updateDynamicCategories() {
+            const menu = document.getElementById('category-dropdown-menu');
+            if (!menu) return;
+
+            const categoriesSet = new Set();
+            moviesData.forEach(movie => {
+                if (movie && movie.genre) {
+                    movie.genre.split(',').forEach(g => {
+                        const trimmed = g.trim();
+                        if (trimmed) categoriesSet.add(trimmed);
+                    });
+                }
+            });
+
+            const uniqueCategories = Array.from(categoriesSet).sort();
+
+            let itemsHtml = `
+                <button onclick="selectCategoryOption('ALL')" 
+                    class="w-full text-left px-3.5 py-2 text-xs transition flex items-center justify-between ${selectedCategory === 'ALL' ? 'bg-blue-600/20 text-blue-400 font-bold' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white font-semibold'}">
+                    <span>Kategori: Semua</span>
+                    ${selectedCategory === 'ALL' ? '<i class="fas fa-check text-[10px]"></i>' : ''}
+                </button>
+            `;
+
+            uniqueCategories.forEach(cat => {
+                const isSelected = (selectedCategory.toLowerCase() === cat.toLowerCase());
+                const safeCatArg = cat.replace(/'/g, "\\'");
+                itemsHtml += `
+                    <button onclick="selectCategoryOption('${safeCatArg}')" 
+                        class="w-full text-left px-3.5 py-2 text-xs transition flex items-center justify-between ${isSelected ? 'bg-blue-600/20 text-blue-400 font-bold' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white font-semibold'}">
+                        <span>${cat}</span>
+                        ${isSelected ? '<i class="fas fa-check text-[10px]"></i>' : ''}
+                    </button>
+                `;
+            });
+
+            menu.innerHTML = itemsHtml;
+        }
+
+        function handleSearch(q) {
+            searchQuery = q.trim();
+            renderCatalog();
+        }
+
+        function renderCatalog() {
+            const container = document.getElementById('catalog-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const filtered = moviesData.filter(movie => {
+                const matchesCategory = selectedCategory === 'ALL' || 
+                    (movie.genre && movie.genre.toLowerCase().includes(selectedCategory.toLowerCase()));
+                const matchesSearch = !searchQuery || 
+                    (movie.title && movie.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (movie.genre && movie.genre.toLowerCase().includes(searchQuery.toLowerCase()));
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-20 text-center text-zinc-500">
+                        <i class="fas fa-film text-4xl mb-3 block text-zinc-600"></i>
+                        <p class="text-xs font-medium">Tidak ada film yang cocok dengan pencarian / kategori.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(movie => {
+                const card = document.createElement('div');
+                card.className = "group relative bg-zinc-900/70 rounded-2xl overflow-hidden border border-zinc-800/80 hover:border-blue-500/50 transition-all duration-300 flex flex-col cursor-pointer shadow-lg hover:shadow-2xl hover:shadow-blue-500/10";
+                card.onclick = () => openPlayer(movie);
+
+                const safePoster = movie.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
+
+                card.innerHTML = `
+                    <div class="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950">
+                        <img src="${safePoster}" alt="${movie.title}" onerror="this.src='https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800'" class="w-full h-full object-fill">
+                        <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-80"></div>
+                        <div class="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 bg-blue-600/90 text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-lg shadow backdrop-blur-md z-10">
+                            ${movie.year || '2026'}
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 bg-black/40 backdrop-blur-[2px] z-10">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/40">
+                                <i class="fas fa-play text-xs sm:text-sm ml-0.5"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-2.5 sm:p-3 flex flex-col items-center justify-center text-center flex-grow">
+                        <h3 class="text-xs font-bold text-white text-center line-clamp-2 group-hover:text-blue-400 transition leading-snug">${movie.title}</h3>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openPlayer(movie) {
+            const modal = document.getElementById('player-modal');
+            const title = document.getElementById('player-title');
+            const genre = document.getElementById('player-genre');
+            const desc = document.getElementById('player-desc');
+            const video = document.getElementById('video-element');
+
+            if (!modal || !video) return;
+
+            title.textContent = movie.title || 'Untitled Movie';
+            genre.textContent = `${movie.genre || 'General'} • ${movie.year || '2026'}`;
+            desc.textContent = movie.description || 'Tidak ada deskripsi sinopsis ketersediaan.';
+
+            video.src = getApiUrl(`/api/stream?id=${movie.driveId}`);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closePlayer() {
+            const modal = document.getElementById('player-modal');
+            const video = document.getElementById('video-element');
+            if (video) {
+                video.pause();
+                video.src = '';
+            }
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function openAdminLogin() {
+            if (adminPassword) {
+                openAdminPanel();
+                return;
+            }
+            const modal = document.getElementById('admin-login-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeAdminLogin() {
+            const modal = document.getElementById('admin-login-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        async function verifyAdminPassword() {
+            const input = document.getElementById('admin-password-input');
+            const password = input ? input.value.trim() : '';
+
+            if (!password) {
+                showToast("Masukkan password admin!", true);
+                return;
+            }
+
+            try {
+                const res = await fetch(getApiUrl('/api/login'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    adminPassword = password;
+                    closeAdminLogin();
+                    if (input) input.value = '';
+                    showToast("Login Admin Berhasil!");
+                    openAdminPanel();
+                } else {
+                    showToast(data.error || "Password Admin Salah!", true);
+                }
+            } catch (err) {
+                showToast("Gagal memverifikasi password admin.", true);
+            }
+        }
+
+        function openAdminPanel() {
+            const modal = document.getElementById('admin-panel-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                renderManageList();
+            }
+        }
+
+        function closeAdminPanel() {
+            const modal = document.getElementById('admin-panel-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function switchAdminTab(tab) {
+            const btnUpload = document.getElementById('btn-tab-upload');
+            const btnManage = document.getElementById('btn-tab-manage');
+            const viewUpload = document.getElementById('view-tab-upload');
+            const viewManage = document.getElementById('view-tab-manage');
+
+            if (tab === 'upload') {
+                btnUpload.className = "flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition bg-blue-600 text-white shadow-lg shadow-blue-600/30";
+                btnManage.className = "flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition text-zinc-400 hover:text-white bg-zinc-900/60 hover:bg-zinc-800";
+                viewUpload.classList.remove('hidden');
+                viewManage.classList.add('hidden');
+            } else {
+                btnManage.className = "flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition bg-blue-600 text-white shadow-lg shadow-blue-600/30";
+                btnUpload.className = "flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition text-zinc-400 hover:text-white bg-zinc-900/60 hover:bg-zinc-800";
+                viewManage.classList.remove('hidden');
+                viewUpload.classList.add('hidden');
+                renderManageList();
+            }
+        }
+
+        async function previewBatchMetadata() {
+            const input = document.getElementById('upload-urls-input');
+            const btn = document.getElementById('btn-preview-meta');
+            const rawText = input ? input.value : '';
+
+            const urls = rawText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+
+            if (urls.length === 0) {
+                showToast("Masukkan setidaknya 1 link video di kolom input!", true);
+                return;
+            }
+
+            if (urls.length > 10) {
+                showToast("Maksimal 10 link sekaligus. Hanya 10 link pertama yang diproses.", true);
+            }
+
+            const targetUrls = urls.slice(0, 10);
+
+            if (btn) btn.disabled = true;
+            showToast("Mengekstrak pratinjau metadata...");
+
+            try {
+                const res = await fetch(getApiUrl('/api/upload/preview'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls: targetUrls })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success && Array.isArray(data.items)) {
+                    previewItemsQueue = data.items;
+                    renderPreviewCards();
+                    showToast(`Berhasil mengekstrak ${data.items.length} item metadata!`);
+                } else {
+                    showToast(data.error || "Gagal mengekstrak pratinjau metadata.", true);
+                }
+            } catch (err) {
+                showToast("Error saat menghubungi server pratinjau.", true);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function renderPreviewCards() {
+            const container = document.getElementById('preview-items-container');
+            if (!container) return;
+
+            if (previewItemsQueue.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-zinc-600 text-xs italic">
+                        Paste link di atas lalu klik "Preview Metadata" untuk meninjau & mengedit informasi film sebelum di-upload.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            previewItemsQueue.forEach((item, idx) => {
+                const safePoster = item.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
+                html += `
+                    <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-3 sm:p-4 relative space-y-2.5 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2">
+                            <span class="text-[11px] font-bold text-blue-400"># Film ${idx + 1} dari ${previewItemsQueue.length}</span>
+                            <button onclick="removePreviewItem(${idx})" class="text-red-400 hover:text-red-300 text-xs font-bold transition flex items-center gap-1">
+                                <i class="fas fa-trash-alt text-[10px]"></i> Hapus Item
+                            </button>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <img src="${safePoster}" onerror="this.src='https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800'" class="w-16 h-24 object-cover rounded-xl shrink-0 hidden sm:block">
+                            <div class="flex-1 space-y-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[9px] font-semibold text-zinc-400 mb-0.5">Judul Film</label>
+                                        <input type="text" value="${item.title || ''}" oninput="updatePreviewField(${idx}, 'title', this.value)" class="w-full bg-zinc-950 text-xs text-white px-2.5 py-1.5 rounded-lg border border-zinc-800 focus:outline-none focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[9px] font-semibold text-zinc-400 mb-0.5">URL Poster Gambar</label>
+                                        <input type="text" value="${item.poster || ''}" oninput="updatePreviewField(${idx}, 'poster', this.value)" class="w-full bg-zinc-950 text-xs text-white px-2.5 py-1.5 rounded-lg border border-zinc-800 focus:outline-none focus:border-blue-500">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[9px] font-semibold text-zinc-400 mb-0.5">Genre / Kategori</label>
+                                        <input type="text" value="${item.genre || ''}" oninput="updatePreviewField(${idx}, 'genre', this.value)" class="w-full bg-zinc-950 text-xs text-white px-2.5 py-1.5 rounded-lg border border-zinc-800 focus:outline-none focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[9px] font-semibold text-zinc-400 mb-0.5">Tahun Rilis</label>
+                                        <input type="text" value="${item.year || ''}" oninput="updatePreviewField(${idx}, 'year', this.value)" class="w-full bg-zinc-950 text-xs text-white px-2.5 py-1.5 rounded-lg border border-zinc-800 focus:outline-none focus:border-blue-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-semibold text-zinc-400 mb-0.5">Sinopsis Singkat</label>
+                                    <textarea oninput="updatePreviewField(${idx}, 'description', this.value)" rows="1" class="w-full bg-zinc-950 text-xs text-white px-2.5 py-1 rounded-lg border border-zinc-800 focus:outline-none focus:border-blue-500 custom-scrollbar">${item.description || ''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updatePreviewField(index, field, value) {
+            if (previewItemsQueue[index]) {
+                previewItemsQueue[index][field] = value;
+            }
+        }
+
+        function removePreviewItem(index) {
+            previewItemsQueue.splice(index, 1);
+            renderPreviewCards();
+        }
+
+        async function startBatchUpload() {
+            if (previewItemsQueue.length === 0) {
+                showToast("Tidak ada item film di antrean. Paste link lalu klik Preview Metadata dahulu!", true);
+                return;
+            }
+
+            const progressContainer = document.getElementById('upload-progress-container');
+            const progressBar = document.getElementById('upload-progress-bar');
+            const progressPercent = document.getElementById('upload-progress-percent');
+            const progressStatus = document.getElementById('upload-progress-status');
+            const progressSpeed = document.getElementById('upload-progress-speed');
+            const btnSubmit = document.getElementById('btn-submit-upload');
+
+            if (btnSubmit) btnSubmit.disabled = true;
+            if (progressContainer) progressContainer.classList.remove('hidden');
+
+            const totalCount = previewItemsQueue.length;
+
+            for (let i = 0; i < totalCount; i++) {
+                const item = previewItemsQueue[i];
+                const currentNum = i + 1;
+
+                if (progressStatus) progressStatus.textContent = `[${currentNum}/${totalCount}] Menginisialisasi "${item.title}"...`;
+                if (progressBar) progressBar.style.width = '0%';
+                if (progressPercent) progressPercent.textContent = '0%';
+                if (progressSpeed) progressSpeed.textContent = '0.0 MB/s';
+
+                try {
+                    // Start background streaming job on server
+                    const startRes = await fetch(getApiUrl('/api/upload/start'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: item.url,
+                            metadata: {
+                                title: item.title,
+                                poster: item.poster,
+                                genre: item.genre,
+                                year: item.year,
+                                description: item.description
+                            }
+                        })
+                    });
+
+                    const startData = await startRes.json();
+                    if (!startRes.ok || startData.error) {
+                        throw new Error(startData.error || `Gagal memulai upload "${item.title}"`);
+                    }
+
+                    const jobId = startData.jobId;
+
+                    // Poll status every 500ms
+                    await new Promise((resolve, reject) => {
+                        const interval = setInterval(async () => {
+                            try {
+                                const progRes = await fetch(getApiUrl(`/api/upload/progress?jobId=${jobId}`));
+                                const progData = await progRes.json();
+
+                                if (!progRes.ok || progData.error) {
+                                    clearInterval(interval);
+                                    return reject(new Error(progData.error || 'Terjadi kesalahan pada transfer server.'));
+                                }
+
+                                const transferredMB = (progData.transferred / (1024 * 1024)).toFixed(1);
+                                const totalMB = progData.fileSize ? (progData.fileSize / (1024 * 1024)).toFixed(1) : '?';
+                                const percent = progData.fileSize ? Math.min(100, Math.floor((progData.transferred / progData.fileSize) * 100)) : 0;
+
+                                if (progressBar) progressBar.style.width = `${percent}%`;
+                                if (progressPercent) progressPercent.textContent = `${percent}%`;
+                                if (progressSpeed) progressSpeed.textContent = `${progData.speedMBps || '0.0'} MB/s`;
+
+                                if (progressStatus) {
+                                    progressStatus.textContent = `[${currentNum}/${totalCount}] Transfer "${item.title}": ${transferredMB}MB / ${totalMB}MB`;
+                                }
+
+                                if (progData.status === 'completed') {
+                                    clearInterval(interval);
+                                    if (progressBar) progressBar.style.width = '100%';
+                                    if (progressPercent) progressPercent.textContent = '100%';
+                                    showToast(`Film "${item.title}" (${currentNum}/${totalCount}) selesai!`);
+                                    resolve();
+                                }
+                            } catch (e) {
+                                clearInterval(interval);
+                                reject(e);
+                            }
+                        }, 500);
+                    });
+
+                } catch (itemErr) {
+                    showToast(`Gagal transfer film "${item.title}": ${itemErr.message}`, true);
+                }
+            }
+
+            showToast("Semua transfer batch telah selesai!");
+            previewItemsQueue = [];
+            renderPreviewCards();
+
+            const input = document.getElementById('upload-urls-input');
+            if (input) input.value = '';
+
+            setTimeout(async () => {
+                if (progressContainer) progressContainer.classList.add('hidden');
+                await fetchMovies();
+                switchAdminTab('manage');
+            }, 1500);
+
+            if (btnSubmit) btnSubmit.disabled = false;
+        }
+
+        function renderManageList() {
+            const container = document.getElementById('manage-list-container');
+            if (!container) return;
+
+            if (moviesData.length === 0) {
+                container.innerHTML = `<p class="text-xs text-zinc-400 text-center py-8">Katalog film masih kosong.</p>`;
+                return;
+            }
+
+            let html = `<div class="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">`;
+            moviesData.forEach(movie => {
+                const safeTitle = (movie.title || 'Untitled Movie').replace(/'/g, "\\'");
+                const safePoster = movie.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
+                html += `
+                    <div class="flex items-center justify-between p-2.5 sm:p-3 bg-zinc-900/90 rounded-2xl border border-zinc-800/90 text-xs shadow-sm gap-2">
+                        <div class="flex items-center gap-2.5 overflow-hidden pr-1">
+                            <img src="${safePoster}" onerror="this.src='https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800'" class="w-9 h-12 sm:w-10 sm:h-14 object-cover rounded-xl shrink-0">
+                            <div class="truncate">
+                                <h4 class="font-bold text-white truncate text-xs">${movie.title}</h4>
+                                <p class="text-[10px] text-zinc-400 truncate mt-0.5">${movie.genre || 'General'} • ${movie.year || '2026'}</p>
+                                <p class="text-[9px] text-zinc-500 font-mono truncate mt-0.5">ID: ${movie.driveId}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="openEditModal('${movie.driveId}')" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white px-2.5 py-1.5 rounded-xl font-bold transition text-[10px] sm:text-[11px] flex items-center gap-1 border border-amber-500/30">
+                                <i class="fas fa-pen text-[9px]"></i> <span class="hidden xs:inline">Edit</span>
+                            </button>
+                            <button onclick="confirmDeleteMovie('${movie.driveId}', '${safeTitle}')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2.5 py-1.5 rounded-xl font-bold transition text-[10px] sm:text-[11px] flex items-center gap-1 border border-red-500/30">
+                                <i class="fas fa-trash-alt text-[9px]"></i> <span class="hidden xs:inline">Hapus</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function openEditModal(driveId) {
+            const movie = moviesData.find(m => m.driveId === driveId);
+            if (!movie) return;
+
+            currentEditingDriveId = driveId;
+
+            document.getElementById('edit-title-input').value = movie.title || '';
+            document.getElementById('edit-poster-input').value = movie.poster || '';
+            document.getElementById('edit-genre-input').value = movie.genre || '';
+            document.getElementById('edit-year-input').value = movie.year || '';
+            document.getElementById('edit-desc-input').value = movie.description || '';
+
+            const modal = document.getElementById('edit-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeEditModal() {
+            currentEditingDriveId = null;
+            const modal = document.getElementById('edit-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        async function saveEditMovie() {
+            if (!currentEditingDriveId || !adminPassword) {
+                showToast("Otorisasi admin tidak valid.", true);
+                return;
+            }
+
+            const title = document.getElementById('edit-title-input').value.trim();
+            const poster = document.getElementById('edit-poster-input').value.trim();
+            const genre = document.getElementById('edit-genre-input').value.trim();
+            const year = document.getElementById('edit-year-input').value.trim();
+            const description = document.getElementById('edit-desc-input').value.trim();
+
+            try {
+                const res = await fetch(getApiUrl('/api/movies/update'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        driveId: currentEditingDriveId,
+                        password: adminPassword,
+                        title,
+                        poster,
+                        genre,
+                        year,
+                        description
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast("Perubahan film berhasil disimpan!");
+                    closeEditModal();
+                    await fetchMovies();
+                } else {
+                    showToast(data.error || "Gagal mengedit film.", true);
+                }
+            } catch (err) {
+                showToast("Error saat memperbarui metadata film.", true);
+            }
+        }
+
+        function confirmDeleteMovie(driveId, title) {
+            currentDeletingDriveId = driveId;
+            const text = document.getElementById('delete-confirm-text');
+            if (text) {
+                text.textContent = `Apakah Anda yakin ingin menghapus "${title}"? File video di Google Drive dan metadata di katalog akan dihapus permanen.`;
+            }
+            const modal = document.getElementById('delete-confirm-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeDeleteModal() {
+            currentDeletingDriveId = null;
+            const modal = document.getElementById('delete-confirm-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        async function executeDeleteMovie() {
+            if (!currentDeletingDriveId || !adminPassword) {
+                showToast("Otorisasi admin tidak valid.", true);
+                return;
+            }
+
+            try {
+                const res = await fetch(getApiUrl('/api/movies/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        driveId: currentDeletingDriveId,
+                        password: adminPassword
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast("Film & file Google Drive berhasil dihapus!");
+                    closeDeleteModal();
+                    await fetchMovies();
+                } else {
+                    showToast(data.error || "Gagal menghapus film.", true);
+                }
+            } catch (err) {
+                showToast("Error saat menghubungi server untuk menghapus film.", true);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMovies();
+        });
+    </script>
+</body>
+</html>
