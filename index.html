@@ -6,146 +6,74 @@
     <title>MovieBox Cloud Streaming</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
+            font-family: 'Inter', sans-serif;
             background-color: #09090b;
             color: #f4f4f5;
         }
-        .poster-fit {
-            object-fit: fill;
-            width: 100%;
-            height: 100%;
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
             background: #18181b;
+            border-radius: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #27272a;
-            border-radius: 4px;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46;
+        }
+        .content-visibility-auto {
+            content-visibility: auto;
+            contain-intrinsic-size: 0 300px;
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white">
 
-    <nav class="bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 sticky top-0 z-50 px-4 py-3">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('user')">
-                <div class="p-2 bg-blue-600 rounded-xl text-white font-bold text-lg">🎬</div>
-                <span class="font-extrabold text-lg tracking-wide bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                    MovieBox
-                </span>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                <button id="nav-btn-user" onclick="navigateTo('user')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-lg transition">
-                    🌐 Utama
-                </button>
-                <button id="nav-btn-admin" onclick="navigateTo('admin')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition">
-                    ⚙️ Admin Panel
-                </button>
+    <header class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 sm:gap-4">
+        <div class="relative shrink-0" id="category-dropdown-container">
+            <button onclick="toggleCategoryDropdown()" id="category-dropdown-btn" 
+                class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 cursor-pointer transition shadow-sm flex items-center gap-2">
+                <span id="selected-category-label">Kategori: Semua</span>
+                <i id="category-dropdown-arrow" class="fas fa-chevron-down text-[10px] text-zinc-400 transition-transform duration-200"></i>
+            </button>
+            
+            <div id="category-dropdown-menu" 
+                class="hidden absolute left-0 top-full mt-2 w-52 bg-zinc-900/95 border border-zinc-800/90 backdrop-blur-md rounded-2xl shadow-2xl z-50 py-1.5 max-h-64 overflow-y-auto custom-scrollbar">
             </div>
         </div>
-    </nav>
 
-    <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-zinc-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-zinc-800 text-xs"></div>
+        <div class="relative flex-1 max-w-xs sm:max-w-md">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500"></i>
+            <input type="text" oninput="handleSearch(this.value)" placeholder="Cari film atau anime..." 
+                class="w-full bg-zinc-900 text-xs text-white pl-8 pr-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 transition">
+        </div>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6">
+        <button onclick="openAdminLogin()" class="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-sm">
+            <i class="fas fa-sliders-h text-xs"></i>
+            <span class="hidden sm:inline">Uploader</span>
+        </button>
+    </header>
 
-        <section id="view-user" class="space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800/80">
-                <div class="flex items-center gap-3">
-                    <select id="category-filter" onchange="filterCatalog()" class="bg-zinc-900 text-xs font-bold text-white px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none">
-                        <option value="ALL">Kategori: Semua</option>
-                    </select>
-                </div>
-                <input type="text" id="user-search" oninput="filterCatalog()" placeholder="🔍 Cari film atau anime..."
-                    class="w-full sm:w-72 bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-blue-500 text-white" />
-            </div>
-
-            <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5"></div>
-        </section>
-
-        <section id="view-admin" class="hidden space-y-6">
-            <div class="flex items-center justify-between bg-zinc-900 p-4 rounded-2xl border border-zinc-800">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 bg-blue-600/20 text-blue-400 rounded-xl font-bold">⚙️</div>
-                    <div>
-                        <h2 class="text-sm font-bold">MovieBox Dashboard Admin</h2>
-                        <span class="text-[10px] text-emerald-400 font-mono">● Mode Admin Aktif</span>
-                    </div>
-                </div>
-                <button onclick="navigateTo('user')" class="px-3 py-1.5 bg-zinc-800 text-xs font-bold rounded-xl border border-zinc-700 hover:bg-zinc-700">
-                    🌐 Kembali Ke Website
-                </button>
-            </div>
-
-            <div class="flex border-b border-zinc-800">
-                <button id="tab-btn-uploader" onclick="switchAdminTab('uploader')" class="px-5 py-3 font-bold text-xs border-b-2 border-blue-500 text-blue-400">
-                    1. Remote Uploader Batch & Auto TMDB
-                </button>
-                <button id="tab-btn-health" onclick="switchAdminTab('health')" class="px-5 py-3 font-bold text-xs text-zinc-400 hover:text-white">
-                    2. Kelola Katalog & Health Checker
-                </button>
-            </div>
-
-            <div id="tab-content-uploader" class="space-y-4">
-                <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 space-y-3">
-                    <label class="block text-xs font-bold text-zinc-300">Direct Video URL / Link Video (Maksimal 10 Link, 1 Per Baris)</label>
-                    <textarea id="batch-urls" rows="4" placeholder="Paste link di sini...&#10;https://drive.usercontent.google.com/download?id=..."
-                        class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-blue-500 custom-scrollbar"></textarea>
-                    
-                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
-                        <span class="text-[10px] text-blue-400">🤖 Sistem mengekstrak metadata otomatis dari TMDB & iTunes</span>
-                        <button onclick="processBatchPreview()" class="w-full sm:w-auto px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg">
-                            🔍 Preview & Auto-Fetch TMDB (Max 10 Link)
-                        </button>
-                    </div>
-                </div>
-
-                <div id="preview-container" class="space-y-3"></div>
-
-                <div id="transfer-action-container" class="hidden">
-                    <button onclick="saveAllToCatalog()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg">
-                        🚀 Simpan Semua ke Katalog
-                    </button>
-                </div>
-            </div>
-
-            <div id="tab-content-health" class="hidden space-y-4">
-                <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center">
-                    <div>
-                        <h3 class="font-bold text-xs">Google Drive Health Checker</h3>
-                        <p class="text-[10px] text-zinc-400">Diagnosis status link video secara real-time</p>
-                    </div>
-                    <button onclick="runHealthCheck()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl">
-                        🔍 Jalankan Diagnosis Semua Link
-                    </button>
-                </div>
-
-                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                    <table class="w-full text-left text-xs text-zinc-300">
-                        <thead class="bg-zinc-950 text-zinc-400 uppercase font-mono border-b border-zinc-800">
-                            <tr>
-                                <th class="p-3">Judul Film</th>
-                                <th class="p-3">Status Google Drive</th>
-                                <th class="p-3">Ukuran File</th>
-                                <th class="p-3 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="health-table-body" class="divide-y divide-zinc-800"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
+    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 py-5">
+        <div id="catalog-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5"></div>
     </main>
 
     <div id="player-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-2 sm:p-4">
         <div class="relative w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
-            <div class="p-3 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
+            <div class="p-3 bg-zinc-900/90 border-b border-zinc-800/80 flex items-center justify-between">
                 <div class="truncate pr-4">
                     <h2 id="player-title" class="text-xs sm:text-sm font-bold text-white truncate"></h2>
                     <p id="player-genre" class="text-[10px] text-zinc-400 truncate"></p>
@@ -154,8 +82,8 @@
                     <i class="fas fa-times text-xs"></i>
                 </button>
             </div>
-            <div class="relative aspect-video w-full bg-black flex items-center justify-center">
-                <video id="video-element" controls controlsList="nodownload" preload="metadata" class="w-full h-full object-contain"></video>
+            <div class="relative aspect-video w-full bg-black">
+                <video id="video-element" controls controlsList="nodownload" class="w-full h-full object-contain"></video>
             </div>
             <div class="p-3 sm:p-4 bg-zinc-900/40 overflow-y-auto custom-scrollbar">
                 <p id="player-desc" class="text-xs text-zinc-400 leading-relaxed"></p>
@@ -163,12 +91,179 @@
         </div>
     </div>
 
+    <div id="admin-login-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
+                        <i class="fas fa-lock text-xs"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-white">Verifikasi Akses Admin</h3>
+                </div>
+                <button onclick="closeAdminLogin()" class="text-zinc-500 hover:text-white transition text-xs">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="text-xs text-zinc-400 mb-4 leading-relaxed">Masukkan kata sandi admin yang terdaftar pada file <code class="text-blue-400 bg-zinc-900 px-1.5 py-0.5 rounded">.env</code> Anda.</p>
+            <input type="password" id="admin-password-input" placeholder="Masukkan Password Admin..." 
+                class="w-full bg-zinc-900 text-xs text-white px-3.5 py-2.5 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 mb-4 transition">
+            <button onclick="verifyAdminPassword()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-lg shadow-blue-600/20">
+                Masuk ke Panel Admin
+            </button>
+        </div>
+    </div>
+
+    <div id="admin-panel-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-3xl p-4 sm:p-6 shadow-2xl relative flex flex-col max-h-[92vh]">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
+                        <i class="fas fa-sliders-h text-xs"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Panel Kontrol Website</h3>
+                        <p class="text-[10px] text-zinc-400">Remote Uploader Batch (Max 10 Video) & Kelola Katalog</p>
+                    </div>
+                </div>
+                <button onclick="closeAdminPanel()" class="text-zinc-500 hover:text-white transition text-xs">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800 mb-4 shrink-0">
+                <button id="btn-tab-upload" onclick="switchAdminTab('upload')" class="flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition bg-blue-600 text-white shadow-lg shadow-blue-600/30">
+                    <i class="fas fa-cloud-upload-alt mr-1"></i> 1. Remote Uploader Batch
+                </button>
+                <button id="btn-tab-manage" onclick="switchAdminTab('manage')" class="flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition text-zinc-400 hover:text-white bg-zinc-900/60 hover:bg-zinc-800">
+                    <i class="fas fa-list mr-1"></i> 2. Kelola & Hapus Website
+                </button>
+            </div>
+
+            <div id="view-tab-upload" class="space-y-3.5 overflow-y-auto custom-scrollbar pr-1 flex-1 flex flex-col">
+                <div>
+                    <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Direct Video URL / Link MovieBox (Bisa Paste Hingga 10 Link, 1 Per Baris)</label>
+                    <textarea id="upload-urls-input" rows="3" placeholder="Paste link video/MovieBox di sini (Maksimal 10 link, pisahkan dengan baris baru / Enter)..." 
+                        class="w-full bg-zinc-900 text-xs text-white px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 transition custom-scrollbar font-mono"></textarea>
+                    <div class="flex items-center justify-between mt-1.5">
+                        <p class="text-[9px] text-blue-400/80"><i class="fas fa-info-circle mr-1"></i> Sistem akan mengekstrak informasi metadata untuk setiap link.</p>
+                        <button id="btn-preview-meta" onclick="previewBatchMetadata()" class="bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-indigo-500/40 shrink-0">
+                            <i class="fas fa-search text-[10px]"></i> 🔍 Preview Metadata (Max 10 Link)
+                        </button>
+                    </div>
+                </div>
+
+                <div id="preview-items-container" class="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[120px]">
+                    <div class="text-center py-8 text-zinc-600 text-xs italic">
+                        Paste link di atas lalu klik "Preview Metadata" untuk meninjau & mengedit informasi film sebelum di-upload.
+                    </div>
+                </div>
+
+                <div id="upload-progress-container" class="hidden space-y-1.5 pt-2 border-t border-zinc-800/80">
+                    <div class="flex justify-between items-center text-[11px] font-semibold">
+                        <span id="upload-progress-status" class="text-zinc-400 truncate">Memproses...</span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span id="upload-progress-speed" class="text-emerald-400 font-mono text-[10px]">0 MB/s</span>
+                            <span id="upload-progress-percent" class="text-blue-400 font-mono">0%</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-zinc-900 h-2.5 rounded-full overflow-hidden border border-zinc-800">
+                        <div id="upload-progress-bar" class="bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2 shrink-0 border-t border-zinc-800/60">
+                    <button onclick="closeAdminPanel()" class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-semibold transition">Batal</button>
+                    <button id="btn-submit-upload" onclick="startBatchUpload()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20">
+                        <i class="fas fa-play mr-1.5 text-[10px]"></i> Mulai Transfer Semua ke Drive
+                    </button>
+                </div>
+            </div>
+
+            <div id="view-tab-manage" class="hidden flex-grow overflow-y-auto">
+                <div id="manage-list-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold">
+                        <i class="fas fa-edit text-xs"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-white">Edit Informasi Film</h3>
+                </div>
+                <button onclick="closeEditModal()" class="text-zinc-500 hover:text-white transition text-xs">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Judul Film / Anime</label>
+                    <input type="text" id="edit-title-input" class="w-full bg-zinc-900 text-xs text-white px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-amber-500 transition">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-zinc-400 mb-1">URL Poster Gambar</label>
+                    <input type="text" id="edit-poster-input" class="w-full bg-zinc-900 text-xs text-white px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-amber-500 transition">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Genre / Kategori</label>
+                        <input type="text" id="edit-genre-input" class="w-full bg-zinc-900 text-xs text-white px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Tahun Rilis</label>
+                        <input type="text" id="edit-year-input" class="w-full bg-zinc-900 text-xs text-white px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-amber-500 transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Sinopsis</label>
+                    <textarea id="edit-desc-input" rows="3" class="w-full bg-zinc-900 text-xs text-white px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-amber-500 transition custom-scrollbar"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:bg-zinc-800 transition">Batal</button>
+                    <button onclick="saveEditMovie()" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-lg shadow-amber-600/20">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl relative text-center">
+            <div class="w-12 h-12 rounded-2xl bg-red-600/20 text-red-500 mx-auto flex items-center justify-center mb-3 font-bold text-lg">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-2">Hapus Film Ini?</h3>
+            <p id="delete-confirm-text" class="text-xs text-zinc-400 mb-5 leading-relaxed px-2"></p>
+            <div class="flex items-center gap-2">
+                <button onclick="closeDeleteModal()" class="flex-1 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:bg-zinc-800 transition">Batal</button>
+                <button onclick="executeDeleteMovie()" class="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition shadow-lg shadow-red-600/20">
+                    Ya, Hapus Permanen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none">
+        <i id="toast-icon" class="fas fa-info-circle text-blue-400 text-base"></i>
+        <span id="toast-message" class="text-xs font-medium"></span>
+    </div>
+
     <script>
-        let movieCatalog = [];
-        let previewQueue = [];
-        let currentPlayingMovieId = null;
-        let lastPlayedTime = 0;
-        let isRecovering = false;
+        let moviesData = [];
+        let selectedCategory = 'ALL';
+        let searchQuery = '';
+        let adminPassword = '';
+        let currentDeletingDriveId = null;
+        let currentEditingDriveId = null;
+        let previewItemsQueue = [];
+        let currentPlayingDriveId = null;
+        let lastPlaybackPosition = 0;
+        let isReconnecting = false;
 
         function shuffleArray(array) {
             const arr = [...array];
@@ -179,230 +274,35 @@
             return arr;
         }
 
-        function showToast(msg, isError = false) {
+        function getApiUrl(path) {
+            if (!path) return '';
+            if (path.startsWith('http://') || path.startsWith('https://')) return path;
+            const cleanPath = path.startsWith('/') ? path : '/' + path;
+
+            if (window.location.href.startsWith('blob:') || window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null') {
+                if (window.location.origin && window.location.origin !== 'null' && (window.location.origin.startsWith('http://') || window.location.origin.startsWith('https://'))) {
+                    return `${window.location.origin}${cleanPath}`;
+                }
+                return `http://localhost:3000${cleanPath}`;
+            }
+
+            return cleanPath;
+        }
+
+        function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
-            if (!toast) return;
-            toast.innerText = msg;
-            toast.className = `fixed bottom-5 right-5 z-50 bg-zinc-900 text-white px-4 py-3 rounded-xl shadow-2xl border text-xs ${isError ? 'border-red-500/50 text-red-300' : 'border-blue-500/50 text-blue-300'}`;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3500);
-        }
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+            if (!toast || !toastMsg) return;
 
-        async function fetchMovies() {
-            try {
-                const res = await fetch('/api/movies');
-                const data = await res.json();
-                if (data && Array.isArray(data.movies)) {
-                    movieCatalog = shuffleArray(data.movies);
-                }
-            } catch (e) {
-                movieCatalog = [];
-            } finally {
-                updateCategoryDropdown();
-                renderCatalog();
-            }
-        }
-
-        function updateCategoryDropdown() {
-            const select = document.getElementById('category-filter');
-            if (!select) return;
-            const genres = new Set();
-            movieCatalog.forEach(m => {
-                if (m.genre) {
-                    m.genre.split(',').forEach(g => genres.add(g.trim()));
-                }
-            });
-            select.innerHTML = '<option value="ALL">Kategori: Semua</option>';
-            genres.forEach(g => {
-                select.innerHTML += `<option value="${g}">${g}</option>`;
-            });
-        }
-
-        function navigateTo(view) {
-            const userView = document.getElementById('view-user');
-            const adminView = document.getElementById('view-admin');
-            const btnUser = document.getElementById('nav-btn-user');
-            const btnAdmin = document.getElementById('nav-btn-admin');
-
-            if (view === 'admin') {
-                userView.classList.add('hidden');
-                adminView.classList.remove('hidden');
-                btnAdmin.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-lg transition";
-                btnUser.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition";
-                renderHealthTable();
+            toastMsg.textContent = message;
+            if (isError) {
+                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-950/90 border border-red-800/80 text-red-200 shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100";
+                toastIcon.className = "fas fa-exclamation-circle text-red-400 text-base";
             } else {
-                adminView.classList.add('hidden');
-                userView.classList.remove('hidden');
-                btnUser.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-lg transition";
-                btnAdmin.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition";
-                renderCatalog();
-            }
-        }
-
-        function switchAdminTab(tab) {
-            const uploader = document.getElementById('tab-content-uploader');
-            const health = document.getElementById('tab-content-health');
-            const btnUp = document.getElementById('tab-btn-uploader');
-            const btnHealth = document.getElementById('tab-btn-health');
-
-            if (tab === 'uploader') {
-                uploader.classList.remove('hidden');
-                health.classList.add('hidden');
-                btnUp.className = "px-5 py-3 font-bold text-xs border-b-2 border-blue-500 text-blue-400";
-                btnHealth.className = "px-5 py-3 font-bold text-xs text-zinc-400 hover:text-white";
-            } else {
-                uploader.classList.add('hidden');
-                health.classList.remove('hidden');
-                btnHealth.className = "px-5 py-3 font-bold text-xs border-b-2 border-blue-500 text-blue-400";
-                btnUp.className = "px-5 py-3 font-bold text-xs text-zinc-400 hover:text-white";
-                renderHealthTable();
-            }
-        }
-
-        function renderCatalog(items = movieCatalog) {
-            const grid = document.getElementById('catalog-grid');
-            grid.innerHTML = '';
-
-            if (items.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-500 text-xs">Belum ada film di katalog.</div>`;
-                return;
+                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-950/90 border border-emerald-800/80 text-emerald-200 shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100";
+                toastIcon.className = "fas fa-check-circle text-emerald-400 text-base";
             }
 
-            items.forEach(movie => {
-                const card = document.createElement('div');
-                card.className = "group relative bg-zinc-900/70 rounded-2xl overflow-hidden border border-zinc-800/80 hover:border-blue-500/50 transition duration-300 flex flex-col cursor-pointer shadow-lg";
-                card.onclick = () => openPlayer(movie);
-
-                const poster = movie.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
-
-                card.innerHTML = `
-                    <div class="relative aspect-[2/3] w-full bg-zinc-950 overflow-hidden">
-                        <img src="${poster}" loading="lazy" decoding="async" alt="${movie.title}" class="poster-fit" onerror="this.src='https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800'">
-                        <div class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-md shadow">
-                            ${movie.year || '2026'}
-                        </div>
-                    </div>
-                    <div class="p-2.5 flex flex-col items-center justify-center text-center flex-grow bg-zinc-900">
-                        <h3 class="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-blue-400 transition">${movie.title}</h3>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function filterCatalog() {
-            const query = document.getElementById('user-search').value.toLowerCase();
-            const category = document.getElementById('category-filter').value;
-
-            const filtered = movieCatalog.filter(m => {
-                const matchCat = category === 'ALL' || (m.genre && m.genre.toLowerCase().includes(category.toLowerCase()));
-                const matchSearch = !query || (m.title && m.title.toLowerCase().includes(query));
-                return matchCat && matchSearch;
-            });
-
-            renderCatalog(filtered);
-        }
-
-        function openPlayer(movie) {
-            currentPlayingMovieId = movie.driveId;
-            lastPlayedTime = 0;
-            isRecovering = false;
-
-            document.getElementById('player-title').innerText = movie.title || 'Untitled';
-            document.getElementById('player-genre').innerText = `${movie.genre || 'General'} • ${movie.year || '2026'}`;
-            document.getElementById('player-desc').innerText = movie.description || 'Tidak ada deskripsi sinopsis.';
-
-            const video = document.getElementById('video-element');
-            video.src = `/api/stream?id=${movie.driveId}`;
-
-            const modal = document.getElementById('player-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            video.play().catch(() => {});
-        }
-
-        function closePlayer() {
-            const video = document.getElementById('video-element');
-            video.pause();
-            video.src = '';
-            currentPlayingMovieId = null;
-            lastPlayedTime = 0;
-            const modal = document.getElementById('player-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        const video = document.getElementById('video-element');
-
-        video.addEventListener('timeupdate', () => {
-            if (video.currentTime > 0) {
-                lastPlayedTime = video.currentTime;
-            }
-        });
-
-        video.addEventListener('stalled', handleStreamStall);
-        video.addEventListener('waiting', () => {
             setTimeout(() => {
-                if (video.readyState < 3 && !video.paused) {
-                    handleStreamStall();
-                }
-            }, 4000);
-        });
-
-        function handleStreamStall() {
-            if (isRecovering || !currentPlayingMovieId) return;
-            isRecovering = true;
-            showToast('Menyambung ulang koneksi video...');
-
-            const currentTime = lastPlayedTime;
-            video.src = `/api/stream?id=${currentPlayingMovieId}&t=${Date.now()}`;
-            video.load();
-
-            video.oncanplay = () => {
-                if (currentTime > 0) {
-                    video.currentTime = currentTime;
-                }
-                video.play().catch(() => {});
-                isRecovering = false;
-                video.oncanplay = null;
-            };
-        }
-
-        async function processBatchPreview() {
-            const text = document.getElementById('batch-urls').value.trim();
-            if (!text) {
-                showToast('Masukkan minimal 1 URL', true);
-                return;
-            }
-
-            const urls = text.split('\n').map(l => l.trim()).filter(l => l.length > 0).slice(0, 10);
-            showToast('Mengekstrak metadata...');
-
-            try {
-                const res = await fetch('/api/upload/preview', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ urls })
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    previewQueue = data.items.map((item, idx) => ({
-                        id: 'prev_' + Date.now() + '_' + idx,
-                        ...item
-                    }));
-                    renderPreviewQueue();
-                    document.getElementById('transfer-action-container').classList.remove('hidden');
-                }
-            } catch (e) {
-                showToast('Gagal mengekstrak preview', true);
-            }
-        }
-
-        function renderPreviewQueue() {
-            const container = document.getElementById('preview-container');
-            container.innerHTML = '';
-
-            previewQueue.forEach((item, index) => {
-                const card = 
+                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white sha

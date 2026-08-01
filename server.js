@@ -30,6 +30,7 @@ function loadEnvFile() {
         try {
             let content = fs.readFileSync(envPath, 'utf8');
             content = content.replace(/^\uFEFF/, '');
+
             content.split(/\r?\n/).forEach(line => {
                 const trimmed = line.trim();
                 if (trimmed && !trimmed.startsWith('#')) {
@@ -55,13 +56,6 @@ process.on('unhandledRejection', () => {});
 const uploadJobs = global._uploadJobs || new Map();
 global._uploadJobs = uploadJobs;
 
-const TMDB_KEYS = [
-    '3fd2be6f0cd02802273d23139a7707f5',
-    '15d2ea6d0daf1846e374d90317560d22',
-    '84242e9f29b40258034a0219100e28a5',
-    'c33fb3a4d6efdf81e1e912f27dd060db'
-];
-
 function getOAuth2Client() {
     const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -75,7 +69,7 @@ function getOAuth2Client() {
 
 async function getMetadataFile(drive) {
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-    if (!folderId) throw new Error("GOOGLE_DRIVE_FOLDER_ID tidak ditemukan");
+    if (!folderId) throw new Error("GOOGLE_DRIVE_FOLDER_ID belum diisi di file .env!");
 
     const q = `'${folderId}' in parents and name = 'metadata.json' and trashed = false`;
     const res = await drive.files.list({ q, fields: 'files(id, name)' });
@@ -137,6 +131,7 @@ function sanitizePosterUrl(url) {
     if (!url || typeof url !== 'string') return defaultPoster;
     url = url.trim();
     if (!url.startsWith('http://') && !url.startsWith('https://')) return defaultPoster;
+
     if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
         const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
         if (match && match[1]) {
@@ -146,98 +141,268 @@ function sanitizePosterUrl(url) {
     return url;
 }
 
-function cleanTitleForSearch(raw) {
-    if (!raw) return '';
-    return raw
-        .replace(/https?:\/\/[^\s]+/gi, '')
-        .replace(/\.(mp4|mkv|avi|mov|webm|flv)$/i, '')
-        .replace(/[._-]/g, ' ')
-        .replace(/\b(1080p|720p|480p|4k|hdr|web-dl|bluray|x264|hevc|h264|aac)\b/gi, '')
-        .replace(/\b(19\d{2}|20\d{2})\b/g, '')
-        .trim();
+function resolveTargetUrl(targetUrl) {
+    if (!targetUrl || typeof targetUrl !== 'string') return targetUrl;
+    targetUrl = targetUrl.trim();
+
+    if (targetUrl.includes('pixeldrain.com/u/')) {
+        return targetUrl.replace('pixeldrain.com/u/', 'pixeldrain.com/api/file/');
+    }
+
+    if ((targetUrl.includes('drive.google.com') || targetUrl.includes('docs.google.com')) && 
+        !targetUrl.includes('drive.usercontent.google.com') && 
+        !targetUrl.includes('export=download')) {
+        const match = targetUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || targetUrl.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://drive.google.com/uc?export=download&confirm=t&id=${match[1]}`;
+        }
+    }
+    return targetUrl;
 }
 
-function httpGetJson(targetUrl, headers = {}) {
+function fetchHtmlPage(pageUrl, redirectsLeft = 5) {
     return new Promise((resolve, reject) => {
+        if (redirectsLeft <= 0) return reject(new Error("Terlalu banyak redirect halaman web!"));
         try {
-            const parsed = new URL(targetUrl);
-            const client = parsed.protocol === 'https:' ? https : http;
-            const req = client.request(targetUrl, {
+            const parsedUrl = new URL(pageUrl);
+            const client = parsedUrl.protocol === 'https:' ? https : http;
+
+            const reqOptions = {
                 method: 'GET',
-                agent: parsed.protocol === 'https:' ? httpsAgent : httpAgent,
+                agent: parsedUrl.protocol === 'https:' ? httpsAgent : httpAgent,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'application/json',
-                    ...headers
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9'
                 },
-                timeout: 5000
-            }, (res) => {
-                let body = '';
-                res.on('data', c => { body += c; });
-                res.on('end', () => {
-                    try {
-                        resolve(JSON.parse(body));
-                    } catch (e) {
-                        reject(e);
+                timeout: 15000
+            };
+
+            const req = client.request(pageUrl, reqOptions, (res) => {
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                    let redirectUrl = res.headers.location;
+                    if (!redirectUrl.startsWith('http')) {
+                        redirectUrl = new URL(redirectUrl, pageUrl).href;
                     }
-                });
+                    res.destroy();
+                    return resolve(fetchHtmlPage(redirectUrl, redirectsLeft - 1));
+                }
+
+                let html = '';
+                res.on('data', chunk => { html += chunk; });
+                res.on('end', () => resolve(html));
+                res.on('error', reject);
             });
+
+            req.on('timeout', () => { req.destroy(); reject(new Error("Timeout saat membaca halaman web.")); });
             req.on('error', reject);
-            req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
             req.end();
-        } catch (err) {
-            reject(err);
+        } catch (e) {
+            reject(e);
         }
     });
 }
 
-async function fetchMetadataEngine(rawTitle) {
-    const query = cleanTitleForSearch(rawTitle);
-    const fallback = {
-        title: query || "Untitled Movie",
-        posterUrl: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800",
-        overview: "Sinopsis tidak ditemukan.",
-        year: "2026",
-        genre: "General"
-    };
+function parseMovieBoxMetadataAndStream(html, pageUrl) {
+    let title = '';
+    let poster = '';
+    let description = '';
+    let year = '';
+    let videoUrl = '';
 
-    if (!query) return fallback;
+    let matchTitle = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
+                     html.match(/<title>([^<]+)<\/title>/i);
+    if (matchTitle && matchTitle[1]) {
+        title = matchTitle[1].replace(/ - MovieBox.*/i, '').replace(/ - Watch.*/i, '').trim();
+    }
 
-    for (const key of TMDB_KEYS) {
-        for (const lang of ['id-ID', 'en-US']) {
-            try {
-                const tmdbUrl = `https://api.themoviedb.org/3/search/multi?api_key=${key}&query=${encodeURIComponent(query)}&language=${lang}`;
-                const res = await httpGetJson(tmdbUrl);
-                if (res && res.results && res.results.length > 0) {
-                    const match = res.results.find(r => r.media_type === 'movie' || r.media_type === 'tv') || res.results[0];
-                    return {
-                        title: match.title || match.name || query,
-                        posterUrl: match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : fallback.posterUrl,
-                        overview: match.overview || fallback.overview,
-                        year: (match.release_date || match.first_air_date || '2026').substring(0, 4),
-                        genre: match.media_type === 'tv' ? 'Serial TV / Anime' : 'Film / Movie'
-                    };
-                }
-            } catch (e) {}
+    let matchPoster = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
+                      html.match(/<link\s+rel=["']image_src["']\s+href=["']([^"']+)["']/i);
+    if (matchPoster && matchPoster[1]) {
+        poster = matchPoster[1].trim();
+    }
+
+    let matchDesc = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i) ||
+                    html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
+    if (matchDesc && matchDesc[1]) {
+        description = matchDesc[1].trim();
+    }
+
+    let matchYear = html.match(/\b(202[0-9]|201[0-9])\b/);
+    if (matchYear) year = matchYear[1];
+
+    const isTrailerPattern = /trailer|preview|promo|teaser|sample|short/i;
+    let streamCandidates = [];
+
+    let scriptMatches = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi) || [];
+    for (let scriptTag of scriptMatches) {
+        let content = scriptTag.replace(/<\/?script[^>]*>/gi, '');
+        let jsonMatches = [...content.matchAll(/["'](?:url|file|src|path|download_url|stream_url|play_url|playUrl|videoUrl|hls_url)["']\s*:\s*["'](https?:[^"']+)["']/gi)];
+        for (let m of jsonMatches) {
+            let candidate = m[1].replace(/\\/g, '');
+            if (!isTrailerPattern.test(candidate)) {
+                streamCandidates.push({ url: candidate, score: 100 });
+            }
         }
     }
 
-    try {
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=movie&limit=1`;
-        const res = await httpGetJson(itunesUrl);
-        if (res && res.results && res.results.length > 0) {
-            const match = res.results[0];
-            return {
-                title: match.trackName || query,
-                posterUrl: match.artworkUrl100 ? match.artworkUrl100.replace('100x100bb', '600x600bb') : fallback.posterUrl,
-                overview: match.longDescription || match.shortDescription || fallback.overview,
-                year: (match.releaseDate || '2026').substring(0, 4),
-                genre: match.primaryGenreName || 'Movie'
-            };
+    if (streamCandidates.length === 0) {
+        let rawVideoMatches = html.match(/https?:\\?\/\\?\/[^\s"'<>]+?\.(?:mp4|m3u8|mkv|webm|mov)(?:\?[^\s"'<>]*)?/gi) || [];
+        for (let rawUrl of rawVideoMatches) {
+            let candidate = rawUrl.replace(/\\/g, '');
+            if (!isTrailerPattern.test(candidate)) {
+                streamCandidates.push({ url: candidate, score: 50 });
+            }
         }
-    } catch (e) {}
+    }
 
-    return fallback;
+    if (streamCandidates.length > 0) {
+        videoUrl = streamCandidates[0].url;
+    }
+
+    return { title, poster, description, year, videoUrl };
+}
+
+function startStreamUploadJob(jobId, targetUrl, metadata, redirectsLeft = 10) {
+    const job = uploadJobs.get(jobId);
+    if (!job) return;
+
+    if (redirectsLeft <= 0) {
+        job.status = 'error';
+        job.error = "Terlalu banyak redirect dari server sumber video!";
+        return;
+    }
+
+    try {
+        const auth = getOAuth2Client();
+        const drive = google.drive({ version: 'v3', auth });
+        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+        if (!folderId) {
+            job.status = 'error';
+            job.error = "GOOGLE_DRIVE_FOLDER_ID belum diisi di file .env!";
+            return;
+        }
+
+        const resolvedUrl = resolveTargetUrl(targetUrl);
+        const parsedUrl = new URL(resolvedUrl);
+        const client = parsedUrl.protocol === 'https:' ? https : http;
+
+        const reqOptions = {
+            method: 'GET',
+            agent: parsedUrl.protocol === 'https:' ? httpsAgent : httpAgent,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': '*/*'
+            },
+            timeout: 60000
+        };
+
+        const reqSource = client.request(resolvedUrl, reqOptions, (resSource) => {
+            if (resSource.statusCode >= 300 && resSource.statusCode < 400 && resSource.headers.location) {
+                let redirectUrl = resSource.headers.location;
+                if (!redirectUrl.startsWith('http')) {
+                    redirectUrl = new URL(redirectUrl, resolvedUrl).href;
+                }
+                resSource.destroy();
+                return startStreamUploadJob(jobId, redirectUrl, metadata, redirectsLeft - 1);
+            }
+
+            if (resSource.statusCode >= 400) {
+                resSource.destroy();
+                job.status = 'error';
+                job.error = `HTTP Error ${resSource.statusCode} dari server sumber video.`;
+                return;
+            }
+
+            let fileSize = 0;
+            if (resSource.headers['content-length']) {
+                fileSize = parseInt(resSource.headers['content-length'], 10);
+            }
+            job.fileSize = fileSize;
+            job.status = 'transferring';
+
+            let transferred = 0;
+            let lastTransferred = 0;
+            let lastTime = Date.now();
+
+            const { PassThrough } = require('stream');
+            const passThrough = new PassThrough({ highWaterMark: 8 * 1024 * 1024 });
+
+            resSource.on('data', (chunk) => {
+                transferred += chunk.length;
+                job.transferred = transferred;
+
+                const now = Date.now();
+                const timeDiff = (now - lastTime) / 1000;
+                if (timeDiff >= 0.5) {
+                    const bytesDiff = transferred - lastTransferred;
+                    const speedMBps = (bytesDiff / (1024 * 1024)) / timeDiff;
+                    job.speedMBps = speedMBps.toFixed(1);
+                    lastTime = now;
+                    lastTransferred = transferred;
+                }
+            });
+
+            resSource.on('error', (err) => {
+                job.status = 'error';
+                job.error = `Error saat streaming video: ${err.message}`;
+            });
+
+            resSource.pipe(passThrough);
+
+            drive.files.create({
+                requestBody: {
+                    name: `${metadata.title || 'Movie'}.mp4`,
+                    parents: [folderId]
+                },
+                media: {
+                    mimeType: 'video/mp4',
+                    body: passThrough
+                },
+                fields: 'id'
+            }).then(async (driveRes) => {
+                const realDriveId = driveRes.data.id;
+                job.status = 'completed';
+                job.driveId = realDriveId;
+                job.speedMBps = '0.0';
+
+                try {
+                    const { data: currentList } = await getMetadataFile(drive);
+                    const cleanedList = currentList.filter(item => item.driveId && !item.driveId.startsWith('drive-') && !item.driveId.startsWith('demo-'));
+
+                    cleanedList.push({
+                        driveId: realDriveId,
+                        title: metadata.title || "Untitled Movie",
+                        poster: sanitizePosterUrl(metadata.poster),
+                        genre: metadata.genre || "General",
+                        year: metadata.year || "2026",
+                        description: metadata.description || ""
+                    });
+
+                    await saveMetadataFile(drive, cleanedList);
+                } catch (metaErr) {}
+            }).catch((err) => {
+                job.status = 'error';
+                job.error = `Error Google Drive Upload: ${err.message}`;
+            });
+        });
+
+        reqSource.on('timeout', () => {
+            reqSource.destroy();
+            job.status = 'error';
+            job.error = "Timeout koneksi ke server sumber video (30 detik tanpa respon).";
+        });
+        reqSource.on('error', (err) => {
+            job.status = 'error';
+            job.error = `Error HTTP Request: ${err.message}`;
+        });
+        reqSource.end();
+
+    } catch (err) {
+        job.status = 'error';
+        job.error = err.message;
+    }
 }
 
 async function handleRequest(req, res) {
@@ -261,10 +426,10 @@ async function handleRequest(req, res) {
 
             if (expectedPassword && inputPassword === expectedPassword) {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: true, message: "Login Berhasil" }));
+                return res.end(JSON.stringify({ success: true, message: "Login Berhasil!" }));
             } else {
                 res.writeHead(401, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: false, error: "Password Admin Salah" }));
+                return res.end(JSON.stringify({ success: false, error: "Password Admin Salah!" }));
             }
         } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -272,12 +437,19 @@ async function handleRequest(req, res) {
         }
     }
 
+    if (pathname === '/favicon.ico') {
+        res.writeHead(204);
+        return res.end();
+    }
+
     if (pathname === '/api/movies' && req.method === 'GET') {
         try {
             const auth = getOAuth2Client();
             const drive = google.drive({ version: 'v3', auth });
             let { data: movies } = await getMetadataFile(drive);
+
             const validMovies = movies.filter(m => m.driveId && !m.driveId.startsWith('drive-') && !m.driveId.startsWith('demo-'));
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ movies: validMovies }));
         } catch (err) {
@@ -286,76 +458,48 @@ async function handleRequest(req, res) {
         }
     }
 
-    if (pathname === '/api/tmdb-search' && req.method === 'GET') {
-        try {
-            const raw = parsedUrl.searchParams.get('q') || '';
-            const data = await fetchMetadataEngine(raw);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, data }));
-        } catch (err) {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
-                success: true,
-                data: {
-                    title: "Untitled Movie",
-                    posterUrl: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800",
-                    overview: "Sinopsis tidak ditemukan.",
-                    year: "2026",
-                    genre: "General"
-                }
-            }));
-        }
-    }
-
-    if (pathname === '/api/admin/health-check' && req.method === 'POST') {
-        try {
-            const auth = getOAuth2Client();
-            const drive = google.drive({ version: 'v3', auth });
-            const { data: movies } = await getMetadataFile(drive);
-
-            const results = await Promise.all(movies.map(async (m) => {
-                try {
-                    const resFile = await drive.files.get({ fileId: m.driveId, fields: 'id, name, size, trashed' });
-                    if (resFile.data.trashed) {
-                        return { driveId: m.driveId, title: m.title, status: 'BROKEN', details: 'File Terhapus di Trash' };
-                    }
-                    const sizeMB = (parseInt(resFile.data.size || '0') / (1024 * 1024)).toFixed(1);
-                    return { driveId: m.driveId, title: m.title, status: 'ONLINE', details: `${sizeMB} MB` };
-                } catch (e) {
-                    return { driveId: m.driveId, title: m.title, status: 'BROKEN', details: 'Link Rusak / ID 404' };
-                }
-            }));
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, results }));
-        } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: err.message }));
-        }
-    }
-
     if (pathname === '/api/upload/preview' && req.method === 'POST') {
         try {
             const body = await parseJsonBody(req);
             const { urls } = body;
+
             if (!urls || !Array.isArray(urls) || urls.length === 0) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: "Daftar URL kosong" }));
+                return res.end(JSON.stringify({ error: "Daftar URL tidak boleh kosong!" }));
             }
 
             const results = [];
-            for (let rawUrl of urls.slice(0, 10)) {
+            const targetUrls = urls.slice(0, 10);
+
+            for (let rawUrl of targetUrls) {
                 const singleUrl = rawUrl.trim();
                 if (!singleUrl) continue;
-                const metadata = await fetchMetadataEngine(singleUrl);
-                results.push({
+
+                let extracted = {
                     url: singleUrl,
-                    title: metadata.title,
-                    poster: metadata.posterUrl,
-                    genre: metadata.genre,
-                    year: metadata.year,
-                    description: metadata.overview
-                });
+                    title: "Untitled Movie",
+                    poster: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800",
+                    genre: "General",
+                    year: "2026",
+                    description: ""
+                };
+
+                if (singleUrl.includes('movie-box.co')) {
+                    try {
+                        const html = await fetchHtmlPage(singleUrl);
+                        const parsedData = parseMovieBoxMetadataAndStream(html, singleUrl);
+
+                        if (parsedData.videoUrl) {
+                            extracted.url = parsedData.videoUrl;
+                        }
+                        extracted.title = parsedData.title || extracted.title;
+                        extracted.poster = sanitizePosterUrl(parsedData.poster) || extracted.poster;
+                        extracted.year = parsedData.year || extracted.year;
+                        extracted.description = parsedData.description || extracted.description;
+                    } catch (e) {}
+                }
+
+                results.push(extracted);
             }
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -366,144 +510,23 @@ async function handleRequest(req, res) {
         }
     }
 
-    if (pathname === '/api/stream' && req.method === 'GET') {
+    if (pathname === '/api/upload/start' && req.method === 'POST') {
         try {
-            const driveId = parsedUrl.searchParams.get('id');
-            if (!driveId || driveId.startsWith('demo-') || driveId.startsWith('drive-')) {
+            const body = await parseJsonBody(req);
+            let { url, metadata } = body;
+
+            if (!url) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Drive ID tidak valid' }));
+                return res.end(JSON.stringify({ error: "URL wajib diisi!" }));
             }
 
-            const auth = getOAuth2Client();
-            const drive = google.drive({ version: 'v3', auth });
+            let extractedMetadata = {
+                title: metadata.title || "Untitled Movie",
+                poster: sanitizePosterUrl(metadata.poster),
+                genre: metadata.genre || "General",
+                year: metadata.year || "2026",
+                description: metadata.description || ""
+            };
 
-            const fileMeta = await drive.files.get({ fileId: driveId, fields: 'size, mimeType' });
-            const fileSize = parseInt(fileMeta.data.size || '0', 10);
-            const range = req.headers.range;
-
-            if (range && fileSize > 0) {
-                const parts = range.replace(/bytes=/, "").split("-");
-                const start = parseInt(parts[0], 10);
-                const maxChunk = 4 * 1024 * 1024;
-                let end = parts[1] ? parseInt(parts[1], 10) : start + maxChunk - 1;
-                if (end >= fileSize) end = fileSize - 1;
-
-                const chunkSize = (end - start) + 1;
-
-                res.writeHead(206, {
-                    'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-                    'Accept-Ranges': 'bytes',
-                    'Content-Length': chunkSize,
-                    'Content-Type': 'video/mp4',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache'
-                });
-
-                const streamRes = await drive.files.get(
-                    { fileId: driveId, alt: 'media' },
-                    { responseType: 'stream', headers: { Range: `bytes=${start}-${end}` } }
-                );
-
-                streamRes.data.pipe(res);
-                req.on('close', () => {
-                    try {
-                        streamRes.data.destroy();
-                    } catch (e) {}
-                });
-            } else {
-                res.writeHead(200, {
-                    'Content-Length': fileSize,
-                    'Content-Type': 'video/mp4',
-                    'Accept-Ranges': 'bytes'
-                });
-
-                const streamRes = await drive.files.get(
-                    { fileId: driveId, alt: 'media' },
-                    { responseType: 'stream' }
-                );
-
-                streamRes.data.pipe(res);
-                req.on('close', () => {
-                    try {
-                        streamRes.data.destroy();
-                    } catch (e) {}
-                });
-            }
-            return;
-        } catch (err) {
-            if (!res.headersSent) {
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: err.message }));
-            }
-            return;
-        }
-    }
-
-    if (pathname === '/api/movies/delete' && req.method === 'POST') {
-        try {
-            const body = await parseJsonBody(req);
-            const { driveId, password } = body;
-            const expectedPassword = (process.env.ADMIN_PASSWORD || '').trim();
-
-            if (!expectedPassword || password !== expectedPassword) {
-                res.writeHead(401, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: "Otorisasi Admin Gagal" }));
-            }
-
-            const auth = getOAuth2Client();
-            const drive = google.drive({ version: 'v3', auth });
-
-            try {
-                await drive.files.delete({ fileId: driveId });
-            } catch (e) {}
-
-            let { data: currentList } = await getMetadataFile(drive);
-            const updatedList = currentList.filter(m => m.driveId !== driveId);
-            await saveMetadataFile(drive, updatedList);
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true, message: "Film terhapus" }));
-        } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: err.message }));
-        }
-    }
-
-    if (pathname === '/api/movies/update' && req.method === 'POST') {
-        try {
-            const body = await parseJsonBody(req);
-            const { driveId, password, title, poster, genre, year, description } = body;
-            const expectedPassword = (process.env.ADMIN_PASSWORD || '').trim();
-
-            if (!expectedPassword || password !== expectedPassword) {
-                res.writeHead(401, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: "Otorisasi Admin Gagal" }));
-            }
-
-            const auth = getOAuth2Client();
-            const drive = google.drive({ version: 'v3', auth });
-
-            let { data: currentList } = await getMetadataFile(drive);
-            let found = false;
-
-            const updatedList = currentList.map(item => {
-                if (item.driveId === driveId) {
-                    found = true;
-                    return {
-                        ...item,
-                        title: title || item.title,
-                        poster: sanitizePosterUrl(poster || item.poster),
-                        genre: genre || item.genre,
-                        year: year || item.year,
-                        description: description !== undefined ? description : item.description
-                    };
-                }
-                return item;
-            });
-
-            if (!found) {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: "Film tidak ditemukan" }));
-            }
-
-            await saveMetadataFile(drive, up
+            if (url.includes('movie-box.co')) {
+                
