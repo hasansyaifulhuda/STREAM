@@ -447,8 +447,10 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             </div>
 
             <div id="resume-banner" class="hidden bg-blue-950/80 border-y border-blue-800/60 px-4 py-2.5 flex items-center justify-between text-xs text-blue-200">
-                <span id="resume-banner-text">Pernah nonton sebelumnya-00:00.</span>
+                <span id="resume-banner-text">Kamu pernah menonton film ini sampai menit ke-00:00. Lanjutkan?</span>
                 <div class="flex items-center gap-2">
+                    <button onclick="applyResumePlayback()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1 rounded-lg text-[11px] transition shadow cursor-pointer">Ya, Lanjutkan</button>
+                    <button onclick="dismissResumeBanner()" class="text-zinc-400 hover:text-white text-[11px] px-2 py-1 cursor-pointer">Ulangi</button>
                 </div>
             </div>
 
