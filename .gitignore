@@ -2,3 +2,5 @@ node_modules/
 .env
 client_secret_*.json
 .DS_Store
+Archive.zip
+*.log
