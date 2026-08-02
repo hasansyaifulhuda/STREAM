@@ -299,7 +299,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MovieBox Cloud Streaming</title>
+    <title>SHANZ</title>
     
     <!-- PWA Manifest & App Icons -->
     <link rel="manifest" href="/manifest.json">
