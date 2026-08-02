@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -34,12 +36,22 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #3f3f46;
         }
+        :root {
+            --plyr-color-main: #2563eb;
+            --plyr-video-control-color: #f4f4f5;
+            --plyr-control-radius: 12px;
+        }
+        .plyr {
+            border-radius: 16px;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white">
 
     <header class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 sm:gap-4">
-        <!-- Custom Dropdown Menu (Drops Down Directly Under the Nav Button) -->
         <div class="relative shrink-0" id="category-dropdown-container">
             <button onclick="toggleCategoryDropdown()" id="category-dropdown-btn" 
                 class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 cursor-pointer transition shadow-sm flex items-center gap-2">
@@ -47,21 +59,17 @@
                 <i id="category-dropdown-arrow" class="fas fa-chevron-down text-[10px] text-zinc-400 transition-transform duration-200"></i>
             </button>
             
-            <!-- Menu Container (Positioned Absolute Top-Full to Drop DOWN) -->
             <div id="category-dropdown-menu" 
                 class="hidden absolute left-0 top-full mt-2 w-52 bg-zinc-900/95 border border-zinc-800/90 backdrop-blur-md rounded-2xl shadow-2xl z-50 py-1.5 max-h-64 overflow-y-auto custom-scrollbar">
-                <!-- Category items dynamically populated by JS -->
             </div>
         </div>
 
-        <!-- Search Bar (Fully Responsive for HP & Desktop) -->
         <div class="relative flex-1 max-w-xs sm:max-w-md">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500"></i>
             <input type="text" oninput="handleSearch(this.value)" placeholder="Cari film atau anime..." 
                 class="w-full bg-zinc-900 text-xs text-white pl-8 pr-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 transition">
         </div>
 
-        <!-- Admin Uploader Button -->
         <button onclick="openAdminLogin()" class="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-sm">
             <i class="fas fa-sliders-h text-xs"></i>
             <span class="hidden sm:inline">Uploader</span>
@@ -83,9 +91,19 @@
                     <i class="fas fa-times text-xs"></i>
                 </button>
             </div>
+            
             <div class="relative aspect-video w-full bg-black">
-                <video id="video-element" controls controlsList="nodownload" class="w-full h-full object-contain"></video>
+                <video id="video-element" playsinline controls class="w-full h-full object-contain"></video>
             </div>
+
+            <div id="resume-banner" class="hidden bg-blue-950/80 border-y border-blue-800/60 px-4 py-2.5 flex items-center justify-between text-xs text-blue-200">
+                <span id="resume-banner-text">Kamu pernah menonton film ini sampai menit ke-00:00. Lanjutkan?</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="applyResumePlayback()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1 rounded-lg text-[11px] transition shadow">Ya, Lanjutkan</button>
+                    <button onclick="dismissResumeBanner()" class="text-zinc-400 hover:text-white text-[11px] px-2 py-1">Ulangi</button>
+                </div>
+            </div>
+
             <div class="p-3 sm:p-4 bg-zinc-900/40 overflow-y-auto custom-scrollbar">
                 <p id="player-desc" class="text-xs text-zinc-400 leading-relaxed"></p>
             </div>
@@ -131,7 +149,6 @@
                 </button>
             </div>
 
-            <!-- Dashboard Navigation Tabs -->
             <div class="flex items-center gap-2 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800 mb-4 shrink-0">
                 <button id="btn-tab-upload" onclick="switchAdminTab('upload')" class="flex-1 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition bg-blue-600 text-white shadow-lg shadow-blue-600/30">
                     <i class="fas fa-cloud-upload-alt mr-1"></i> 1. Remote Uploader Batch
@@ -141,7 +158,6 @@
                 </button>
             </div>
 
-            <!-- Tab 1: Remote Uploader Form -->
             <div id="view-tab-upload" class="space-y-3.5 overflow-y-auto custom-scrollbar pr-1 flex-1 flex flex-col">
                 <div>
                     <label class="block text-[11px] font-semibold text-zinc-400 mb-1">Direct Video URL / Link MovieBox (Bisa Paste Hingga 10 Link, 1 Per Baris)</label>
@@ -150,19 +166,17 @@
                     <div class="flex items-center justify-between mt-1.5">
                         <p class="text-[9px] text-blue-400/80"><i class="fas fa-info-circle mr-1"></i> Sistem akan mengekstrak informasi metadata untuk setiap link.</p>
                         <button id="btn-preview-meta" onclick="previewBatchMetadata()" class="bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-indigo-500/40 shrink-0">
-                            <i class="fas fa-search text-[10px]"></i> 🔍 Preview Metadata (Max 10 Link)
+                            <i class="fas fa-search text-[10px]"></i> Preview Metadata (Max 10 Link)
                         </button>
                     </div>
                 </div>
 
-                <!-- Preview Items List Container -->
                 <div id="preview-items-container" class="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[120px]">
                     <div class="text-center py-8 text-zinc-600 text-xs italic">
                         Paste link di atas lalu klik "Preview Metadata" untuk meninjau & mengedit informasi film sebelum di-upload.
                     </div>
                 </div>
 
-                <!-- Batch Upload Progress Bar with Speed Counter -->
                 <div id="upload-progress-container" class="hidden space-y-1.5 pt-2 border-t border-zinc-800/80">
                     <div class="flex justify-between items-center text-[11px] font-semibold">
                         <span id="upload-progress-status" class="text-zinc-400 truncate">Memproses...</span>
@@ -184,7 +198,6 @@
                 </div>
             </div>
 
-            <!-- Tab 2: Manage & Edit/Delete List -->
             <div id="view-tab-manage" class="hidden flex-grow overflow-y-auto">
                 <div id="manage-list-container"></div>
             </div>
@@ -267,8 +280,10 @@
         let currentDeletingDriveId = null;
         let currentEditingDriveId = null;
         let previewItemsQueue = [];
+        let plyrPlayer = null;
+        let activeMovieObject = null;
+        let pendingResumeTime = 0;
 
-        // Fisher-Yates Array Shuffle Algorithm for Poster Grid Randomization
         function shuffleArray(array) {
             const arr = [...array];
             for (let i = arr.length - 1; i > 0; i--) {
@@ -283,7 +298,6 @@
             if (path.startsWith('http://') || path.startsWith('https://')) return path;
             const cleanPath = path.startsWith('/') ? path : '/' + path;
 
-            // Handle blob: URLs, file: protocol, or sandboxed environments where relative URLs fail in fetch()
             if (window.location.href.startsWith('blob:') || window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null') {
                 if (window.location.origin && window.location.origin !== 'null' && (window.location.origin.startsWith('http://') || window.location.origin.startsWith('https://'))) {
                     return `${window.location.origin}${cleanPath}`;
@@ -292,6 +306,73 @@
             }
 
             return cleanPath;
+        }
+
+        function getWatchHistory() {
+            try {
+                const raw = localStorage.getItem('moviebox_watch_progress');
+                return raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveWatchProgress(driveId, currentTime, totalDuration) {
+            if (!driveId || !currentTime || currentTime < 10) return;
+            cleanExpiredWatchHistory();
+            const history = getWatchHistory();
+            history[driveId] = {
+                timestamp: Math.floor(currentTime),
+                duration: Math.floor(totalDuration || 0),
+                updatedAt: Date.now()
+            };
+            localStorage.setItem('moviebox_watch_progress', JSON.stringify(history));
+        }
+
+        function cleanExpiredWatchHistory() {
+            const history = getWatchHistory();
+            const now = Date.now();
+            const dayInMs = 24 * 60 * 60 * 1000;
+            let changed = false;
+
+            for (const key in history) {
+                if (now - history[key].updatedAt > dayInMs) {
+                    delete history[key];
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                localStorage.setItem('moviebox_watch_progress', JSON.stringify(history));
+            }
+        }
+
+        function formatSecondsToTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function initPlyrPlayer() {
+            if (plyrPlayer) return;
+
+            plyrPlayer = new Plyr('#video-element', {
+                controls: [
+                    'play-large', 'play', 'progress', 'current-time', 'duration',
+                    'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
+                ],
+                tooltips: { controls: true, seek: true },
+                keyboard: { focused: true, global: true }
+            });
+
+            plyrPlayer.on('timeupdate', () => {
+                if (!activeMovieObject || !plyrPlayer.currentTime) return;
+                const cur = plyrPlayer.currentTime;
+                const dur = plyrPlayer.duration;
+                if (cur > 10 && dur && (cur < dur - 10)) {
+                    saveWatchProgress(activeMovieObject.driveId, cur, dur);
+                }
+            });
         }
 
         function showToast(message, isError = false) {
@@ -317,20 +398,17 @@
         async function fetchMovies() {
             try {
                 const res = await fetch(getApiUrl('/api/movies'));
-                if (!res.ok) {
-                    throw new Error(`HTTP status ${res.status}`);
-                }
+                if (!res.ok) throw new Error(`HTTP status ${res.status}`);
                 const data = await res.json();
                 if (data && Array.isArray(data.movies)) {
-                    // Randomize catalog items on load / refresh
                     moviesData = shuffleArray(data.movies);
                 } else {
                     moviesData = [];
                 }
             } catch (err) {
-                console.error("Error fetching movies:", err);
                 moviesData = moviesData || [];
             } finally {
+                cleanExpiredWatchHistory();
                 updateDynamicCategories();
                 renderCatalog();
                 if (adminPassword) {
@@ -428,6 +506,8 @@
             if (!container) return;
             container.innerHTML = '';
 
+            const history = getWatchHistory();
+
             const filtered = moviesData.filter(movie => {
                 const matchesCategory = selectedCategory === 'ALL' || 
                     (movie.genre && movie.genre.toLowerCase().includes(selectedCategory.toLowerCase()));
@@ -453,6 +533,8 @@
                 card.onclick = () => openPlayer(movie);
 
                 const safePoster = movie.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
+                const hasHistory = history[movie.driveId] && history[movie.driveId].timestamp > 10;
+                const progressPercent = hasHistory && history[movie.driveId].duration ? Math.min(100, (history[movie.driveId].timestamp / history[movie.driveId].duration) * 100) : 0;
 
                 card.innerHTML = `
                     <div class="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950">
@@ -461,11 +543,21 @@
                         <div class="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 bg-blue-600/90 text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-lg shadow backdrop-blur-md z-10">
                             ${movie.year || '2026'}
                         </div>
+                        ${hasHistory ? `
+                            <div class="absolute top-2 right-2 bg-amber-500/90 text-black text-[9px] font-black px-1.5 py-0.5 rounded-md shadow backdrop-blur-md z-10 flex items-center gap-1">
+                                <i class="fas fa-history text-[8px]"></i> Lanjut
+                            </div>
+                        ` : ''}
                         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 bg-black/40 backdrop-blur-[2px] z-10">
                             <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/40">
                                 <i class="fas fa-play text-xs sm:text-sm ml-0.5"></i>
                             </div>
                         </div>
+                        ${hasHistory ? `
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
+                                <div class="h-full bg-blue-500" style="width: ${progressPercent}%"></div>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="p-2.5 sm:p-3 flex flex-col items-center justify-center text-center flex-grow">
                         <h3 class="text-xs font-bold text-white text-center line-clamp-2 group-hover:text-blue-400 transition leading-snug">${movie.title}</h3>
@@ -476,34 +568,82 @@
         }
 
         function openPlayer(movie) {
+            activeMovieObject = movie;
+            initPlyrPlayer();
+
             const modal = document.getElementById('player-modal');
             const title = document.getElementById('player-title');
             const genre = document.getElementById('player-genre');
             const desc = document.getElementById('player-desc');
-            const video = document.getElementById('video-element');
+            const resumeBanner = document.getElementById('resume-banner');
+            const resumeText = document.getElementById('resume-banner-text');
 
-            if (!modal || !video) return;
+            if (!modal) return;
 
             title.textContent = movie.title || 'Untitled Movie';
             genre.textContent = `${movie.genre || 'General'} • ${movie.year || '2026'}`;
             desc.textContent = movie.description || 'Tidak ada deskripsi sinopsis ketersediaan.';
 
-            video.src = getApiUrl(`/api/stream?id=${movie.driveId}`);
+            const streamUrl = getApiUrl(`/api/stream?id=${movie.driveId}`);
+
+            if (plyrPlayer) {
+                plyrPlayer.source = {
+                    type: 'video',
+                    title: movie.title || 'Movie',
+                    sources: [
+                        {
+                            src: streamUrl,
+                            type: 'video/mp4'
+                        }
+                    ]
+                };
+            }
+
+            const history = getWatchHistory();
+            const savedItem = history[movie.driveId];
+
+            if (savedItem && savedItem.timestamp > 10) {
+                pendingResumeTime = savedItem.timestamp;
+                if (resumeBanner && resumeText) {
+                    resumeText.textContent = `Kamu pernah menonton film ini sampai menit ke-${formatSecondsToTime(pendingResumeTime)}. Lanjutkan?`;
+                    resumeBanner.classList.remove('hidden');
+                }
+            } else {
+                pendingResumeTime = 0;
+                if (resumeBanner) resumeBanner.classList.add('hidden');
+            }
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
 
+        function applyResumePlayback() {
+            if (plyrPlayer && pendingResumeTime > 0) {
+                plyrPlayer.currentTime = pendingResumeTime;
+                plyrPlayer.play();
+            }
+            dismissResumeBanner();
+        }
+
+        function dismissResumeBanner() {
+            const resumeBanner = document.getElementById('resume-banner');
+            if (resumeBanner) resumeBanner.classList.add('hidden');
+        }
+
         function closePlayer() {
             const modal = document.getElementById('player-modal');
-            const video = document.getElementById('video-element');
-            if (video) {
-                video.pause();
-                video.src = '';
+            const resumeBanner = document.getElementById('resume-banner');
+            if (plyrPlayer) {
+                plyrPlayer.stop();
             }
+            activeMovieObject = null;
+            pendingResumeTime = 0;
+            if (resumeBanner) resumeBanner.classList.add('hidden');
             if (modal) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
             }
+            renderCatalog();
         }
 
         function openAdminLogin() {
@@ -735,7 +875,6 @@
                 if (progressSpeed) progressSpeed.textContent = '0.0 MB/s';
 
                 try {
-                    // Start background streaming job on server
                     const startRes = await fetch(getApiUrl('/api/upload/start'), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -758,7 +897,6 @@
 
                     const jobId = startData.jobId;
 
-                    // Poll status every 500ms
                     await new Promise((resolve, reject) => {
                         const interval = setInterval(async () => {
                             try {
