@@ -44,7 +44,7 @@ function loadEnvFile() {
                     }
                 }
             });
-            console.log("✅ File .env berhasil dimuat.");
+            console.log("File .env berhasil dimuat.");
         } catch (e) {}
     }
 }
@@ -301,7 +301,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MovieBox Cloud Streaming</title>
     
-    <!-- PWA Manifest & App Icons -->
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icon.png">
     <meta name="theme-color" content="#09090b">
@@ -310,7 +309,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
     <meta name="apple-mobile-web-app-title" content="MovieBox">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <!-- Suppress Console Warnings -->
     <script>
         (function() {
             var _warn = console.warn;
@@ -329,6 +327,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/core-js/3.32.0/minified.js"></script>
 
     <style>
         body {
@@ -351,7 +350,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         
         .plyr { border-radius: 16px; overflow: hidden; height: 100%; width: 100%; }
 
-        /* Sleek Horizontal Volume Control (Ke Samping) */
         .plyr__volume {
             display: flex !important;
             align-items: center !important;
@@ -465,7 +463,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         <span id="toast-message" class="text-xs font-medium"></span>
     </div>
 
-    <!-- APPLICATION SCRIPT -->
     <script>
         var moviesData = [];
         var selectedCategory = 'ALL';
@@ -569,10 +566,10 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 hideVolume: false
             });
 
-            let audioContext = null;
-            let gainNode = null;
-            let sourceNode = null;
-            let boostFactor = 1.0;
+            var audioContext = null;
+            var gainNode = null;
+            var sourceNode = null;
+            var boostFactor = 1.0;
 
             function applyVolumeBoost(volume) {
                 try {
@@ -581,14 +578,14 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                         gainNode = audioContext.createGain();
                         gainNode.connect(audioContext.destination);
                     }
-                    const video = document.getElementById('video-element');
+                    var video = document.getElementById('video-element');
                     if (!video) return;
                     if (sourceNode) {
                         try { sourceNode.disconnect(); } catch(e) {}
                         sourceNode = null;
                     }
                     if (video.captureStream) {
-                        const stream = video.captureStream();
+                        var stream = video.captureStream();
                         sourceNode = audioContext.createMediaStreamSource(stream);
                         sourceNode.connect(gainNode);
                         gainNode.gain.value = volume * boostFactor;
@@ -598,7 +595,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 
             window.setBoostVolume = function(factor) {
                 boostFactor = Math.min(Math.max(factor, 1.0), 2.0);
-                const video = document.getElementById('video-element');
+                var video = document.getElementById('video-element');
                 if (video) {
                     applyVolumeBoost(video.volume);
                 }
@@ -691,19 +688,29 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             }, 4000);
         }
 
-        async function fetchMovies() {
+        function fetchMovies() {
             try {
-                var res = await fetch(getApiUrl('/api/movies'));
-                if (!res.ok) throw new Error("HTTP status " + res.status);
-                var data = await res.json();
-                if (data && Array.isArray(data.movies)) {
-                    moviesData = shuffleArray(data.movies);
-                } else {
-                    moviesData = [];
-                }
-            } catch (err) {
-                moviesData = moviesData || [];
-            } finally {
+                fetch(getApiUrl('/api/movies'))
+                    .then(function(res) {
+                        if (!res.ok) throw new Error("HTTP status " + res.status);
+                        return res.json();
+                    })
+                    .then(function(data) {
+                        if (data && Array.isArray(data.movies)) {
+                            moviesData = shuffleArray(data.movies);
+                        } else {
+                            moviesData = [];
+                        }
+                    })
+                    .catch(function(err) {
+                        moviesData = moviesData || [];
+                    })
+                    .then(function() {
+                        cleanExpiredWatchHistory();
+                        updateDynamicCategories();
+                        renderCatalog();
+                    });
+            } catch (e) {
                 cleanExpiredWatchHistory();
                 updateDynamicCategories();
                 renderCatalog();
@@ -936,9 +943,11 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             renderCatalog();
         }
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            await fetchMovies();
-        });
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            fetchMovies();
+        } else {
+            document.addEventListener('DOMContentLoaded', fetchMovies);
+        }
     </script>
 </body>
 </html>`;
@@ -1053,9 +1062,7 @@ if (require.main === module) {
     });
 
     server.listen(PORT, () => {
-        console.log("\n==================================================");
-        console.log(`🎬 MOVIEBOX STREAMING SERVER READY (PLAYER MODE)`);
-        console.log(`👉 Buka: http://localhost:${PORT}`);
-        console.log("==================================================\n");
+        console.log("MOVIEBOX STREAMING SERVER READY (PLAYER MODE)");
+        console.log("Buka: http://localhost:" + PORT);
     });
 }
