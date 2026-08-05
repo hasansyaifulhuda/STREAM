@@ -44,7 +44,7 @@ function loadEnvFile() {
                     }
                 }
             });
-            console.log("File .env berhasil dimuat.");
+            console.log("✅ File .env berhasil dimuat.");
         } catch (e) {}
     }
 }
@@ -299,168 +299,433 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MovieBox Cloud Streaming</title>
+    <title>Shanz Stream</title>
     
+    <!-- PWA Manifest & App Icons -->
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icon.png">
     <meta name="theme-color" content="#09090b">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MovieBox">
+    <meta name="apple-mobile-web-app-title" content="Shanz">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <script>
-        (function() {
-            var _warn = console.warn;
-            console.warn = function() {
-                var msg = arguments[0];
-                if (msg && typeof msg === 'string' && (msg.indexOf('tailwindcss.com') !== -1 || msg.indexOf('apple-mobile-web-app-capable') !== -1)) {
-                    return;
-                }
-                _warn.apply(console, arguments);
-            };
-        })();
-    </script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/core-js/3.32.0/minified.js"></script>
 
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #09090b;
             color: #f4f4f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #18181b; border-radius: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-        
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #18181b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        /* Header Navigation */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background-color: rgba(9, 9, 11, 0.92);
+            border-bottom: 1px solid #27272a;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .dropdown-container { position: relative; flex-shrink: 0; }
+        .btn-dropdown {
+            background-color: #18181b;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid #27272a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-dropdown:hover { background-color: #27272a; }
+
+        .dropdown-menu {
+            position: absolute;
+            left: 0;
+            top: 100%;
+            margin-top: 6px;
+            width: 200px;
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+            z-index: 50;
+            padding: 6px 0;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .dropdown-item {
+            width: 100%;
+            text-align: left;
+            padding: 8px 14px;
+            font-size: 12px;
+            color: #d4d4d8;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .dropdown-item:hover { background-color: #27272a; color: #ffffff; }
+        .dropdown-item.active { background-color: rgba(37, 99, 235, 0.2); color: #60a5fa; font-weight: 700; }
+
+        /* Search Input */
+        .search-box { position: relative; flex: 1; max-width: 400px; }
+        .search-input {
+            width: 100%;
+            background-color: #18181b;
+            color: #ffffff;
+            border: 1px solid #27272a;
+            border-radius: 10px;
+            padding: 8px 12px 8px 32px;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input:focus { border-color: #2563eb; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #71717a; }
+
+        /* Badge Count */
+        .count-badge {
+            font-size: 12px;
+            font-weight: 700;
+            color: #a1a1aa;
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            padding: 8px 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        /* Main Catalog Layout */
+        main { flex-grow: 1; padding: 20px 16px; max-width: 1280px; width: 100%; margin: 0 auto; }
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        @media (min-width: 640px) { .catalog-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+        @media (min-width: 768px) { .catalog-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
+        @media (min-width: 1024px) { .catalog-grid { grid-template-columns: repeat(5, 1fr); gap: 20px; } }
+        @media (min-width: 1280px) { .catalog-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; } }
+
+        /* Movie Card Styling */
+        .movie-card {
+            position: relative;
+            background-color: rgba(24, 24, 27, 0.7);
+            border: 1px solid #27272a;
+            border-radius: 14px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .movie-card:hover {
+            border-color: rgba(37, 99, 235, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .poster-box {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2/3;
+            background-color: #000;
+            overflow: hidden;
+        }
+        .poster-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .year-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background-color: rgba(37, 99, 235, 0.9);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 6px;
+            z-index: 10;
+        }
+        .history-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(245, 158, 11, 0.9);
+            color: #000000;
+            font-size: 9px;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 6px;
+            z-index: 10;
+        }
+        .progress-bar-bg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background-color: #27272a;
+            z-index: 10;
+        }
+        .progress-bar-fill { height: 100%; background-color: #2563eb; }
+
+        .movie-info {
+            padding: 10px;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .movie-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #ffffff;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+        }
+        .movie-genre { font-size: 10px; color: #71717a; margin-top: 4px; }
+
+        /* Modal Player Window (Flex Scaling Fix untuk Windows & Linux) */
+        #player-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.88);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        #player-modal.hidden { display: none !important; }
+
+        .modal-card {
+            position: relative;
+            width: 100%;
+            max-width: 860px;
+            max-height: 92vh; /* Presisi di 100% Zoom Windows/Linux */
+            background-color: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 12px 16px;
+            background-color: rgba(24, 24, 27, 0.9);
+            border-bottom: 1px solid #27272a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .modal-title { font-size: 14px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .modal-sub { font-size: 11px; color: #a1a1aa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .close-btn {
+            background-color: #27272a;
+            color: #a1a1aa;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .close-btn:hover { background-color: #3f3f46; color: #ffffff; }
+
+        .modal-video-wrapper {
+            position: relative;
+            width: 100%;
+            background-color: #000;
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            max-height: 60vh; /* Membatasi tinggi video agar deskripsi/header selalu muat */
+        }
+        #video-element {
+            width: 100%;
+            height: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+        }
+
+        .resume-banner {
+            background-color: rgba(30, 58, 138, 0.8);
+            border-top: 1px solid #1e40af;
+            border-bottom: 1px solid #1e40af;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #bfdbfe;
+            flex-shrink: 0;
+        }
+        .resume-btn {
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            padding: 12px 16px;
+            background-color: rgba(24, 24, 27, 0.4);
+            overflow-y: auto;
+            max-height: 120px;
+            flex-shrink: 0;
+            border-top: 1px solid #27272a;
+            font-size: 12px;
+            color: #a1a1aa;
+            line-height: 1.4;
+        }
+
+        /* Plyr Custom Theme Overrides */
         :root {
             --plyr-color-main: #2563eb;
             --plyr-video-control-color: #f4f4f5;
-            --plyr-control-radius: 12px;
+            --plyr-control-radius: 8px;
         }
-        
-        .plyr { border-radius: 16px; overflow: hidden; height: 100%; width: 100%; }
-
-        .plyr__volume {
-            display: flex !important;
-            align-items: center !important;
-            position: relative !important;
-        }
-
-        .plyr__volume input[data-plyr="volume"] {
-            display: block !important;
-            width: 65px !important;
-            max-width: 65px !important;
-            margin-left: 6px !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            cursor: pointer !important;
-        }
-
-        #boost-btn {
-            background: transparent !important;
-            border: none !important;
-            border-radius: 6px !important;
-            padding: 6px 10px !important;
-            font-size: 12px !important;
-            transition: all 0.2s !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 2px !important;
-        }
+        .plyr { width: 100%; height: 100%; max-height: 60vh; }
+        .plyr__volume { display: flex !important; align-items: center !important; }
+        .plyr__volume input[data-plyr="volume"] { display: block !important; width: 60px !important; max-width: 60px !important; margin-left: 6px !important; }
+        #boost-btn { background: transparent !important; border: none !important; border-radius: 6px !important; padding: 6px 8px !important; font-size: 12px !important; color: #fff; cursor: pointer; }
         #boost-btn:hover { background: rgba(255,255,255,0.1) !important; }
-        #boost-btn i { font-size: 14px; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Toast Popup */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2000;
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            color: #ffffff;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
         }
-        .animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; }
+        #toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-        @media (max-width: 768px) {
-            .plyr { border-radius: 0 !important; }
-            .plyr__volume input[data-plyr="volume"] { width: 50px !important; max-width: 50px !important; }
-            #boost-btn { padding: 4px 6px !important; font-size: 10px !important; }
-            #boost-btn i { font-size: 12px; }
-        }
+        .hidden { display: none !important; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+<body>
 
-    <div id="catalog-page-view" class="flex flex-col min-h-screen w-full">
-        <header class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 sm:gap-4">
-            <div class="relative shrink-0" id="category-dropdown-container">
-                <button onclick="toggleCategoryDropdown()" id="category-dropdown-btn" 
-                    class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 cursor-pointer transition shadow-sm flex items-center gap-2">
-                    <span id="selected-category-label">Kategori: Semua</span>
-                    <i id="category-dropdown-arrow" class="fas fa-chevron-down text-[10px] text-zinc-400 transition-transform duration-200"></i>
-                </button>
-                
-                <div id="category-dropdown-menu" 
-                    class="hidden absolute left-0 top-full mt-2 w-52 bg-zinc-900/95 border border-zinc-800/90 backdrop-blur-md rounded-2xl shadow-2xl z-50 py-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+    <header>
+        <div class="dropdown-container" id="category-dropdown-container">
+            <button onclick="toggleCategoryDropdown()" id="category-dropdown-btn" class="btn-dropdown">
+                <span id="selected-category-label">Kategori: Semua</span>
+                <i id="category-dropdown-arrow" class="fas fa-chevron-down" style="font-size:10px;"></i>
+            </button>
+            <div id="category-dropdown-menu" class="dropdown-menu hidden"></div>
+        </div>
+
+        <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" oninput="handleSearch(this.value)" placeholder="Cari film atau anime..." class="search-input">
+        </div>
+
+        <div class="count-badge">
+            <i class="fas fa-film" style="color:#2563eb;"></i>
+            <span id="total-movies-count" style="color:#ffffff; font-weight:800;">0</span> Film
+        </div>
+    </header>
+
+    <main>
+        <div id="catalog-container" class="catalog-grid"></div>
+    </main>
+
+    <!-- Modal Player -->
+    <div id="player-modal" class="hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div style="overflow:hidden; padding-right:12px;">
+                    <div id="player-title" class="modal-title"></div>
+                    <div id="player-genre" class="modal-sub"></div>
                 </div>
-            </div>
-
-            <div class="relative flex-1 max-w-xs sm:max-w-md">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500"></i>
-                <input type="text" oninput="handleSearch(this.value)" placeholder="Cari film atau anime..." 
-                    class="w-full bg-zinc-900 text-xs text-white pl-8 pr-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-blue-500 transition">
-            </div>
-
-            <div class="text-xs font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded-xl flex items-center gap-1.5 shrink-0">
-                <i class="fas fa-film text-blue-500 text-xs"></i>
-                <span id="total-movies-count" class="text-white font-extrabold">0</span>
-                <span class="hidden sm:inline">Film</span>
-            </div>
-        </header>
-
-        <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 py-5">
-            <div id="catalog-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5"></div>
-        </main>
-    </div>
-
-    <div id="player-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-2 sm:p-4">
-        <div class="relative w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
-            <div class="p-3 bg-zinc-900/90 border-b border-zinc-800/80 flex items-center justify-between">
-                <div class="truncate pr-4">
-                    <h2 id="player-title" class="text-xs sm:text-sm font-bold text-white truncate"></h2>
-                    <p id="player-genre" class="text-[10px] text-zinc-400 truncate"></p>
-                </div>
-                <button onclick="closePlayer()" class="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition shrink-0 cursor-pointer">
-                    <i class="fas fa-times text-xs"></i>
-                </button>
+                <button onclick="closePlayer()" class="close-btn"><i class="fas fa-times"></i></button>
             </div>
             
-            <div class="relative aspect-video w-full bg-black">
-                <video id="video-element" playsinline controls class="w-full h-full object-contain"></video>
+            <div class="modal-video-wrapper">
+                <video id="video-element" playsinline controls></video>
             </div>
 
-            <div id="resume-banner" class="hidden bg-blue-950/80 border-y border-blue-800/60 px-4 py-2.5 flex items-center justify-between text-xs text-blue-200">
+            <div id="resume-banner" class="resume-banner hidden">
                 <span id="resume-banner-text">Kamu pernah menonton film ini sampai menit ke-00:00. Lanjutkan?</span>
-                <div class="flex items-center gap-2">
-                    <button onclick="applyResumePlayback()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1 rounded-lg text-[11px] transition shadow cursor-pointer">Ya, Lanjutkan</button>
-                    <button onclick="dismissResumeBanner()" class="text-zinc-400 hover:text-white text-[11px] px-2 py-1 cursor-pointer">Ulangi</button>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="applyResumePlayback()" class="resume-btn">Ya, Lanjutkan</button>
+                    <button onclick="dismissResumeBanner()" style="background:none; border:none; color:#93c5fd; font-size:11px; cursor:pointer;">Ulangi</button>
                 </div>
             </div>
 
-            <div class="p-3 sm:p-4 bg-zinc-900/40 overflow-y-auto custom-scrollbar">
-                <p id="player-desc" class="text-xs text-zinc-400 leading-relaxed"></p>
+            <div class="modal-footer">
+                <p id="player-desc"></p>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none">
-        <i id="toast-icon" class="fas fa-info-circle text-blue-400 text-base"></i>
-        <span id="toast-message" class="text-xs font-medium"></span>
+    <!-- Toast Component -->
+    <div id="toast">
+        <i id="toast-icon" class="fas fa-info-circle" style="color:#60a5fa;"></i>
+        <span id="toast-message"></span>
     </div>
 
     <script>
@@ -494,16 +759,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 
         function getApiUrl(path) {
             if (!path) return '';
-            if (path.startsWith('http://') || path.startsWith('https://')) return path;
-            var cleanPath = path.startsWith('/') ? path : '/' + path;
-
-            if (window.location.href.startsWith('blob:') || window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null') {
-                if (window.location.origin && window.location.origin !== 'null' && (window.location.origin.startsWith('http://') || window.location.origin.startsWith('https://'))) {
-                    return window.location.origin + cleanPath;
-                }
-                return 'http://localhost:3000' + cleanPath;
-            }
-
+            if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0) return path;
+            var cleanPath = path.indexOf('/') === 0 ? path : '/' + path;
             return cleanPath;
         }
 
@@ -611,24 +868,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 }
             });
 
-            plyrPlayer.on('enterfullscreen', function() {
-                if (window.innerWidth < 768) {
-                    try {
-                        if (screen.orientation && screen.orientation.lock) {
-                            screen.orientation.lock('landscape').catch(function() {});
-                        }
-                    } catch (e) {}
-                }
-            });
-
-            plyrPlayer.on('exitfullscreen', function() {
-                try {
-                    if (screen.orientation && screen.orientation.unlock) {
-                        screen.orientation.unlock();
-                    }
-                } catch (e) {}
-            });
-
             addBoostButton();
 
             function addBoostButton() {
@@ -641,23 +880,22 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 
                 var boostBtn = document.createElement('button');
                 boostBtn.id = 'boost-btn';
-                boostBtn.className = 'plyr__control';
                 boostBtn.setAttribute('type', 'button');
                 boostBtn.setAttribute('aria-label', 'Boost Volume');
-                boostBtn.innerHTML = '<i class="fas fa-volume-up"></i> <span style="font-size:8px;margin-left:2px;">1x</span>';
+                boostBtn.innerHTML = '<i class="fas fa-volume-up"></i> <span style="font-size:9px;margin-left:2px;">1x</span>';
 
                 var boostLevel = 1.0;
                 boostBtn.onclick = function() {
                     boostLevel += 0.25;
                     if (boostLevel > 2.0) boostLevel = 1.0;
-                    boostBtn.innerHTML = '<i class="fas fa-volume-up"></i> <span style="font-size:8px;margin-left:2px;">' + boostLevel.toFixed(1) + 'x</span>';
+                    boostBtn.innerHTML = '<i class="fas fa-volume-up"></i> <span style="font-size:9px;margin-left:2px;">' + boostLevel.toFixed(1) + 'x</span>';
                     if (boostLevel === 1.0) {
-                        boostBtn.style.color = '';
+                        boostBtn.style.color = '#ffffff';
                     } else {
                         boostBtn.style.color = '#f59e0b';
                     }
                     window.setBoostVolume(boostLevel);
-                    showToast('Volume Boost: ' + boostLevel.toFixed(1) + 'x', false);
+                    showToast('Volume Boost: ' + boostLevel.toFixed(1) + 'x');
                 };
 
                 var fullscreenBtn = container.querySelector('.plyr__control[data-plyr="fullscreen"]');
@@ -669,30 +907,23 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             }
         }
 
-        function showToast(message, isError) {
+        function showToast(message) {
             var toast = document.getElementById('toast');
             var toastMsg = document.getElementById('toast-message');
-            var toastIcon = document.getElementById('toast-icon');
             if (!toast || !toastMsg) return;
 
             toastMsg.textContent = message;
-            if (isError) {
-                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-950/90 border border-red-800/80 text-red-200 shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100";
-                toastIcon.className = "fas fa-exclamation-circle text-red-400 text-base";
-            } else {
-                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-950/90 border border-emerald-800/80 text-emerald-200 shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100";
-                toastIcon.className = "fas fa-check-circle text-emerald-400 text-base";
-            }
+            toast.className = "show";
             setTimeout(function() {
-                toast.className = "fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none";
-            }, 4000);
+                toast.className = "";
+            }, 3000);
         }
 
         function fetchMovies() {
             try {
                 fetch(getApiUrl('/api/movies'))
                     .then(function(res) {
-                        if (!res.ok) throw new Error("HTTP status " + res.status);
+                        if (!res.ok) throw new Error("HTTP " + res.status);
                         return res.json();
                     })
                     .then(function(data) {
@@ -701,18 +932,15 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                         } else {
                             moviesData = [];
                         }
+                        updateDynamicCategories();
+                        renderCatalog();
                     })
-                    .catch(function(err) {
-                        moviesData = moviesData || [];
-                    })
-                    .then(function() {
-                        cleanExpiredWatchHistory();
+                    .catch(function() {
+                        moviesData = [];
                         updateDynamicCategories();
                         renderCatalog();
                     });
             } catch (e) {
-                cleanExpiredWatchHistory();
-                updateDynamicCategories();
                 renderCatalog();
             }
         }
@@ -721,35 +949,13 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             var menu = document.getElementById('category-dropdown-menu');
             var arrow = document.getElementById('category-dropdown-arrow');
             if (!menu) return;
-            var isHidden = menu.classList.contains('hidden');
-            if (isHidden) {
-                menu.classList.remove('hidden');
-                if (arrow) arrow.classList.add('rotate-180');
+            if (menu.className.indexOf('hidden') !== -1) {
+                menu.className = 'dropdown-menu';
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
             } else {
-                menu.classList.add('hidden');
-                if (arrow) arrow.classList.remove('rotate-180');
+                menu.className = 'dropdown-menu hidden';
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
             }
-        }
-
-        function closeCategoryDropdown() {
-            var menu = document.getElementById('category-dropdown-menu');
-            var arrow = document.getElementById('category-dropdown-arrow');
-            if (menu) menu.classList.add('hidden');
-            if (arrow) arrow.classList.remove('rotate-180');
-        }
-
-        document.addEventListener('click', function(e) {
-            var container = document.getElementById('category-dropdown-container');
-            if (container && !container.contains(e.target)) {
-                closeCategoryDropdown();
-            }
-        });
-
-        function handleCategoryClick(btn) {
-            var raw = btn.getAttribute('data-cat');
-            if (!raw) return;
-            var cat = raw === 'ALL' ? 'ALL' : decodeURIComponent(raw);
-            selectCategoryOption(cat);
         }
 
         function selectCategoryOption(cat) {
@@ -758,7 +964,10 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             if (label) {
                 label.textContent = (cat === 'ALL') ? 'Kategori: Semua' : ('Kategori: ' + cat);
             }
-            closeCategoryDropdown();
+            var menu = document.getElementById('category-dropdown-menu');
+            var arrow = document.getElementById('category-dropdown-arrow');
+            if (menu) menu.className = 'dropdown-menu hidden';
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
             updateDynamicCategories();
             renderCatalog();
         }
@@ -766,35 +975,45 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         function updateDynamicCategories() {
             var menu = document.getElementById('category-dropdown-menu');
             if (!menu) return;
-            var categoriesSet = new Set();
-            moviesData.forEach(function(movie) {
-                if (movie && movie.genre) {
-                    movie.genre.split(',').forEach(function(g) {
-                        var trimmed = g.trim();
-                        if (trimmed) categoriesSet.add(trimmed);
-                    });
+            var categoriesObj = {};
+            for (var i = 0; i < moviesData.length; i++) {
+                var m = moviesData[i];
+                if (m && m.genre) {
+                    var parts = m.genre.split(',');
+                    for (var j = 0; j < parts.length; j++) {
+                        var trimmed = parts[j].trim();
+                        if (trimmed) categoriesObj[trimmed] = true;
+                    }
                 }
-            });
-            var uniqueCategories = Array.from(categoriesSet).sort();
-            var itemsHtml = '<button data-cat="ALL" onclick="handleCategoryClick(this)" ' +
-                'class="w-full text-left px-3.5 py-2 text-xs transition flex items-center justify-between ' + (selectedCategory === 'ALL' ? 'bg-blue-600/20 text-blue-400 font-bold' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white font-semibold') + '">' +
-                '<span>Kategori: Semua</span>' +
-                (selectedCategory === 'ALL' ? '<i class="fas fa-check text-[10px]"></i>' : '') +
-                '</button>';
-            uniqueCategories.forEach(function(cat) {
-                var isSelected = (selectedCategory.toLowerCase() === cat.toLowerCase());
-                var encodedCat = encodeURIComponent(cat);
-                itemsHtml += '<button data-cat="' + encodedCat + '" onclick="handleCategoryClick(this)" ' +
-                    'class="w-full text-left px-3.5 py-2 text-xs transition flex items-center justify-between ' + (isSelected ? 'bg-blue-600/20 text-blue-400 font-bold' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white font-semibold') + '">' +
-                    '<span>' + cat + '</span>' +
-                    (isSelected ? '<i class="fas fa-check text-[10px]"></i>' : '') +
-                    '</button>';
-            });
-            menu.innerHTML = itemsHtml;
+            }
+            var uniqueCategories = [];
+            for (var k in categoriesObj) {
+                uniqueCategories.push(k);
+            }
+            uniqueCategories.sort();
+
+            menu.innerHTML = '';
+
+            var allBtn = document.createElement('button');
+            allBtn.className = 'dropdown-item' + (selectedCategory === 'ALL' ? ' active' : '');
+            allBtn.innerHTML = '<span>Kategori: Semua</span>';
+            allBtn.onclick = function() { selectCategoryOption('ALL'); };
+            menu.appendChild(allBtn);
+
+            for (var x = 0; x < uniqueCategories.length; x++) {
+                (function(catName) {
+                    var btn = document.createElement('button');
+                    var isActive = (selectedCategory.toLowerCase() === catName.toLowerCase());
+                    btn.className = 'dropdown-item' + (isActive ? ' active' : '');
+                    btn.innerHTML = '<span>' + catName + '</span>';
+                    btn.onclick = function() { selectCategoryOption(catName); };
+                    menu.appendChild(btn);
+                })(uniqueCategories[x]);
+            }
         }
 
         function handleSearch(q) {
-            searchQuery = q.trim();
+            searchQuery = q.toLowerCase().trim();
             renderCatalog();
         }
 
@@ -802,63 +1021,67 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             var container = document.getElementById('catalog-container');
             if (!container) return;
             container.innerHTML = '';
-            var history = getWatchHistory();
-            var totalCountEl = document.getElementById('total-movies-count');
-            
-            var filtered = moviesData.filter(function(movie) {
-                var matchesCategory = selectedCategory === 'ALL' || 
-                    (movie.genre && movie.genre.toLowerCase().includes(selectedCategory.toLowerCase()));
-                var matchesSearch = !searchQuery || 
-                    (movie.title && movie.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                    (movie.genre && movie.genre.toLowerCase().includes(searchQuery.toLowerCase()));
-                return matchesCategory && matchesSearch;
-            });
 
-            if (totalCountEl) {
-                totalCountEl.textContent = filtered.length;
+            var history = getWatchHistory();
+            var filtered = [];
+            for (var i = 0; i < moviesData.length; i++) {
+                var movie = moviesData[i];
+                var mGenre = (movie.genre || '').toLowerCase();
+                var mTitle = (movie.title || '').toLowerCase();
+                
+                var matchCat = (selectedCategory === 'ALL') || (mGenre.indexOf(selectedCategory.toLowerCase()) !== -1);
+                var matchSearch = !searchQuery || (mTitle.indexOf(searchQuery) !== -1) || (mGenre.indexOf(searchQuery) !== -1);
+                
+                if (matchCat && matchSearch) {
+                    filtered.push(movie);
+                }
             }
 
+            var countEl = document.getElementById('total-movies-count');
+            if (countEl) countEl.textContent = filtered.length;
+
             if (filtered.length === 0) {
-                container.innerHTML = '<div class="col-span-full py-20 text-center text-zinc-500">' +
-                    '<i class="fas fa-film text-4xl mb-3 block text-zinc-600"></i>' +
-                    '<p class="text-xs font-medium">Tidak ada film yang cocok.</p>' +
+                container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding:60px 0; color:#71717a; font-size:12px;">' +
+                    '<i class="fas fa-film" style="font-size:32px; margin-bottom:12px; display:block; color:#3f3f46;"></i>' +
+                    'Tidak ada film yang cocok.' +
                 '</div>';
                 return;
             }
 
-            filtered.forEach(function(movie) {
+            for (var z = 0; z < filtered.length; z++) {
+                var item = filtered[z];
                 var card = document.createElement('div');
-                card.className = "group relative bg-zinc-900/70 rounded-2xl overflow-hidden border border-zinc-800/80 hover:border-blue-500/50 transition-all duration-300 flex flex-col cursor-pointer shadow-lg hover:shadow-2xl hover:shadow-blue-500/10";
-                card.onclick = function() { openPlayer(movie); };
-                var safePoster = movie.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
-                var hasHistory = history[movie.driveId] && history[movie.driveId].timestamp > 10;
-                var progressPercent = (hasHistory && history[movie.driveId].duration) ? Math.min(100, (history[movie.driveId].timestamp / history[movie.driveId].duration) * 100) : 0;
-                var yearBadge = '<div class="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 bg-blue-600/90 text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-lg shadow backdrop-blur-md z-10">' + (movie.year || '2026') + '</div>';
-                var historyBadge = hasHistory ? '<div class="absolute top-2 right-2 bg-amber-500/90 text-black text-[9px] font-black px-1.5 py-0.5 rounded-md shadow backdrop-blur-md z-10 flex items-center gap-1"><i class="fas fa-history text-[8px]"></i> Lanjut</div>' : '';
-                var progressBar = hasHistory ? '<div class="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10"><div class="h-full bg-blue-500" style="width: ' + progressPercent + '%"></div></div>' : '';
+                card.className = 'movie-card';
                 
-                card.innerHTML = '<div class="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950">' +
-                    '<img src="' + safePoster + '" alt="' + (movie.title || '') + '" onerror="handleImgError(this)" class="w-full h-full object-fill">' +
-                    '<div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-80"></div>' +
-                    yearBadge + historyBadge +
-                    '<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 bg-black/40 backdrop-blur-[2px] z-10">' +
-                        '<div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/40">' +
-                            '<i class="fas fa-play text-xs sm:text-sm ml-0.5"></i>' +
-                        '</div>' +
-                    '</div>' +
-                    progressBar +
+                var safePoster = item.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
+                var hasHistory = history[item.driveId] && history[item.driveId].timestamp > 10;
+                var progressPercent = (hasHistory && history[item.driveId].duration) ? Math.min(100, (history[item.driveId].timestamp / history[item.driveId].duration) * 100) : 0;
+                
+                var yearHtml = '<div class="year-badge">' + (item.year || '2026') + '</div>';
+                var historyHtml = hasHistory ? '<div class="history-badge"><i class="fas fa-history" style="font-size:8px;"></i> Lanjut</div>' : '';
+                var progressHtml = hasHistory ? '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + progressPercent + '%;"></div></div>' : '';
+
+                card.innerHTML = '<div class="poster-box">' +
+                    '<img src="' + safePoster + '" alt="poster" onerror="handleImgError(this)">' +
+                    yearHtml + historyHtml + progressHtml +
                 '</div>' +
-                '<div class="p-2.5 sm:p-3 flex flex-col items-center justify-center text-center flex-grow">' +
-                    '<h3 class="text-xs font-bold text-white text-center line-clamp-2 group-hover:text-blue-400 transition leading-snug">' + (movie.title || 'Untitled') + '</h3>' +
-                    '<p class="text-[10px] text-zinc-500 mt-1">' + (movie.genre || 'General') + '</p>' +
+                '<div class="movie-info">' +
+                    '<div class="movie-title">' + (item.title || 'Untitled') + '</div>' +
+                    '<div class="movie-genre">' + (item.genre || 'General') + '</div>' +
                 '</div>';
+
+                (function(m) {
+                    card.onclick = function() { openPlayer(m); };
+                })(item);
+
                 container.appendChild(card);
-            });
+            }
         }
 
         function openPlayer(movie) {
             activeMovieObject = movie;
             initPlyrPlayer();
+
             var modal = document.getElementById('player-modal');
             var title = document.getElementById('player-title');
             var genre = document.getElementById('player-genre');
@@ -870,6 +1093,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             title.textContent = movie.title || 'Untitled Movie';
             genre.textContent = (movie.genre || 'General') + ' • ' + (movie.year || '2026');
             desc.textContent = movie.description || 'Tidak ada deskripsi.';
+            
             var streamUrl = getApiUrl('/api/stream?id=' + movie.driveId);
 
             if (plyrPlayer) {
@@ -886,15 +1110,14 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 pendingResumeTime = savedItem.timestamp;
                 if (resumeBanner && resumeText) {
                     resumeText.textContent = 'Kamu pernah menonton film ini sampai menit ke-' + formatSecondsToTime(pendingResumeTime) + '. Lanjutkan?';
-                    resumeBanner.classList.remove('hidden');
+                    resumeBanner.className = "resume-banner";
                 }
             } else {
                 pendingResumeTime = 0;
-                if (resumeBanner) resumeBanner.classList.add('hidden');
+                if (resumeBanner) resumeBanner.className = "resume-banner hidden";
             }
 
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.className = "";
         }
 
         function applyResumePlayback() {
@@ -922,7 +1145,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 
         function dismissResumeBanner() {
             var resumeBanner = document.getElementById('resume-banner');
-            if (resumeBanner) resumeBanner.classList.add('hidden');
+            if (resumeBanner) resumeBanner.className = "resume-banner hidden";
         }
 
         function closePlayer() {
@@ -935,11 +1158,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             }
             activeMovieObject = null;
             pendingResumeTime = 0;
-            if (resumeBanner) resumeBanner.classList.add('hidden');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
+            if (resumeBanner) resumeBanner.className = "resume-banner hidden";
+            if (modal) modal.className = "hidden";
             renderCatalog();
         }
 
@@ -967,8 +1187,8 @@ async function handleRequest(req, res) {
 
     if (pathname === '/manifest.json' && req.method === 'GET') {
         const manifest = {
-            name: "MovieBox Cloud Streaming",
-            short_name: "MovieBox",
+            name: "Shanz Stream",
+            short_name: "Shanz",
             start_url: "/",
             display: "standalone",
             background_color: "#09090b",
@@ -1062,7 +1282,9 @@ if (require.main === module) {
     });
 
     server.listen(PORT, () => {
-        console.log("MOVIEBOX STREAMING SERVER READY (PLAYER MODE)");
-        console.log("Buka: http://localhost:" + PORT);
+        console.log("\n==================================================");
+        console.log(`🎬 MOVIEBOX STREAMING SERVER READY (PLAYER MODE)`);
+        console.log(`👉 Buka: http://localhost:${PORT}`);
+        console.log("==================================================\n");
     });
 }
