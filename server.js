@@ -448,7 +448,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         .poster-box {
             position: relative;
             width: 100%;
-            aspect-ratio: 3/4;
+            aspect-ratio: 4/5;
             background-color: #000000;
             overflow: hidden;
             display: flex;
@@ -525,8 +525,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         .modal-card {
             position: relative;
             width: 100%;
-            max-width: 860px;
-            max-height: 92vh;
+            max-width: 960px;
+            max-height: 96vh;
             background-color: #09090b;
             border: 1px solid #27272a;
             border-radius: 16px;
@@ -534,6 +534,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             display: flex;
             flex-direction: column;
+            transition: all 0.3s ease;
         }
 
         .modal-header {
@@ -572,9 +573,32 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            max-height: 60vh;
+            max-height: 75vh;
         }
-        #video-element { width: 100%; height: 100%; max-height: 60vh; object-fit: contain; }
+        #video-element { width: 100%; height: 100%; max-height: 75vh; object-fit: contain; }
+
+        /* True Fullscreen & Auto-Landscape mode for Mobile */
+        .modal-card.fullscreen-mode {
+            max-width: 100% !important;
+            max-height: 100vh !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            border-radius: 0 !important;
+            border: none !important;
+        }
+        .modal-card.fullscreen-mode .modal-header,
+        .modal-card.fullscreen-mode .resume-banner,
+        .modal-card.fullscreen-mode .modal-footer {
+            display: none !important;
+        }
+        .modal-card.fullscreen-mode .modal-video-wrapper {
+            max-height: 100vh !important;
+            height: 100vh !important;
+        }
+        .modal-card.fullscreen-mode #video-element {
+            max-height: 100vh !important;
+            height: 100vh !important;
+        }
 
         .resume-banner {
             background-color: rgba(30, 58, 138, 0.8);
@@ -639,7 +663,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             --plyr-video-control-color: #f4f4f5;
             --plyr-control-radius: 8px;
         }
-        .plyr { width: 100%; height: 100%; max-height: 60vh; }
+        .plyr { width: 100%; height: 100%; max-height: 75vh; }
+        .modal-card.fullscreen-mode .plyr { max-height: 100vh !important; }
         .plyr__volume { display: flex !important; align-items: center !important; }
         .plyr__volume input[data-plyr="volume"] { display: block !important; width: 60px !important; max-width: 60px !important; margin-left: 6px !important; }
         #boost-btn { background: transparent !important; border: none !important; border-radius: 6px !important; padding: 6px 8px !important; font-size: 12px !important; color: #fff; cursor: pointer; }
@@ -710,7 +735,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 
     <!-- Modal Player -->
     <div id="player-modal" class="hidden">
-        <div class="modal-card">
+        <div class="modal-card" id="main-modal-card">
             <div class="modal-header">
                 <div style="overflow:hidden; padding-right:12px;">
                     <div id="player-title" class="modal-title"></div>
@@ -805,6 +830,23 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 keyboard: { focused: true, global: true },
                 volume: 1.0,
                 hideVolume: false
+            });
+
+            // Handle Fullscreen & Auto-Landscape rotation on mobile/desktop
+            plyrPlayer.on('enterfullscreen', function() {
+                var card = document.getElementById('main-modal-card');
+                if (card) card.classList.add('fullscreen-mode');
+                if (screen.orientation && typeof screen.orientation.lock === 'function') {
+                    screen.orientation.lock('landscape').catch(function() {});
+                }
+            });
+
+            plyrPlayer.on('exitfullscreen', function() {
+                var card = document.getElementById('main-modal-card');
+                if (card) card.classList.remove('fullscreen-mode');
+                if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+                    try { screen.orientation.unlock(); } catch (e) {}
+                }
             });
 
             var audioContext = null;
@@ -1250,6 +1292,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         function closePlayer() {
             var modal = document.getElementById('player-modal');
             var resumeBanner = document.getElementById('resume-banner');
+            var card = document.getElementById('main-modal-card');
+            if (card) card.classList.remove('fullscreen-mode');
             if (plyrPlayer) {
                 try { plyrPlayer.stop(); } catch (e) {}
             }
