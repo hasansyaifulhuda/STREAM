@@ -44,7 +44,6 @@ function loadEnvFile() {
                     }
                 }
             });
-            console.log("File .env berhasil dimuat.");
         } catch (e) {}
     }
 }
@@ -508,7 +507,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             line-height: 1.3;
         }
 
-        /* Modal & Episode Selector */
         #player-modal, #series-modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -577,7 +575,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         }
         #video-element { width: 100%; height: 100%; max-height: 75vh; object-fit: contain; }
 
-        /* True Fullscreen & Auto-Landscape mode for Mobile */
         .modal-card.fullscreen-mode {
             max-width: 100% !important;
             max-height: 100vh !important;
@@ -635,7 +632,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             line-height: 1.4;
         }
 
-        /* Series Modal List */
         .series-list-container {
             padding: 16px;
             overflow-y: auto;
@@ -657,7 +653,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         }
         .episode-item:hover { background-color: #27272a; border-color: #3b82f6; }
 
-        /* Plyr Overrides */
         :root {
             --plyr-color-main: #2563eb;
             --plyr-video-control-color: #f4f4f5;
@@ -719,7 +714,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         <div id="catalog-container" class="catalog-grid"></div>
     </main>
 
-    <!-- Series / Anime Episode Selector Modal -->
     <div id="series-modal" class="hidden">
         <div class="modal-card" style="max-width: 500px;">
             <div class="modal-header">
@@ -733,7 +727,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- Modal Player -->
     <div id="player-modal" class="hidden">
         <div class="modal-card" id="main-modal-card">
             <div class="modal-header">
@@ -775,6 +768,16 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         var plyrPlayer = null;
         var activeMovieObject = null;
         var pendingResumeTime = 0;
+
+        function shuffleArray(array) {
+            for (var i = array.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+            return array;
+        }
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
@@ -1033,6 +1036,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 }
                 groupedCatalog.push(map[k]);
             }
+            shuffleArray(groupedCatalog);
         }
 
         function toggleCategoryDropdown() {
@@ -1121,6 +1125,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                     filtered.push(item);
                 }
             }
+
+            shuffleArray(filtered);
 
             var countEl = document.getElementById('total-movies-count');
             if (countEl) countEl.textContent = filtered.length;
@@ -1419,10 +1425,5 @@ if (require.main === module) {
         handleRequest(req, res);
     });
 
-    server.listen(PORT, () => {
-        console.log("\n==================================================");
-        console.log("STREAMHUB PORTAL STREAMING SERVER READY");
-        console.log(`Buka: http://localhost:${PORT}`);
-        console.log("==================================================\n");
-    });
+    server.listen(PORT, () => {});
 }
