@@ -44,7 +44,7 @@ function loadEnvFile() {
                     }
                 }
             });
-            console.log("✅ File .env berhasil dimuat.");
+            console.log("File .env berhasil dimuat.");
         } catch (e) {}
     }
 }
@@ -448,7 +448,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         .poster-box {
             position: relative;
             width: 100%;
-            aspect-ratio: 4/5;
+            aspect-ratio: 3/4;
             background-color: #000000;
             overflow: hidden;
             display: flex;
@@ -832,7 +832,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 hideVolume: false
             });
 
-            // Handle Fullscreen & Auto-Landscape rotation on mobile/desktop
             plyrPlayer.on('enterfullscreen', function() {
                 var card = document.getElementById('main-modal-card');
                 if (card) card.classList.add('fullscreen-mode');
@@ -1422,8 +1421,8 @@ if (require.main === module) {
 
     server.listen(PORT, () => {
         console.log("\n==================================================");
-        console.log(`🎬 STREAMHUB PORTAL STREAMING SERVER READY`);
-        console.log(`👉 Buka: http://localhost:${PORT}`);
+        console.log("STREAMHUB PORTAL STREAMING SERVER READY");
+        console.log(`Buka: http://localhost:${PORT}`);
         console.log("==================================================\n");
     });
 }
