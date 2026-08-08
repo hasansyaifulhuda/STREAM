@@ -385,7 +385,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             justify-content: space-between;
         }
         .dropdown-item:hover { background-color: #27272a; color: #ffffff; }
-        .dropdown-item.active { background-color: rgba(37, 99, 235, 0.2); color: #60a5fa; font-weight: 700; }
+        .dropdown-item.active { background-color: rgba(220, 38, 38, 0.2); color: #f87171; font-weight: 700; }
 
         .search-box { position: relative; flex: 1; max-width: 400px; }
         .search-input {
@@ -399,7 +399,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             outline: none;
             transition: border-color 0.2s;
         }
-        .search-input:focus { border-color: #2563eb; }
+        .search-input:focus { border-color: #dc2626; }
         .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #71717a; }
 
         .count-badge {
@@ -439,7 +439,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             flex-direction: column;
         }
         .movie-card:hover {
-            border-color: rgba(37, 99, 235, 0.6);
+            border-color: rgba(220, 38, 38, 0.6);
             transform: translateY(-3px);
             box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
         }
@@ -457,7 +457,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         .poster-box img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: fill;
             object-position: center;
             transition: transform 0.3s;
         }
@@ -467,7 +467,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             position: absolute;
             top: 8px;
             left: 8px;
-            background-color: rgba(37, 99, 235, 0.9);
+            background-color: rgba(220, 38, 38, 0.9);
             color: #ffffff;
             font-size: 10px;
             font-weight: 800;
@@ -523,7 +523,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         .modal-card {
             position: relative;
             width: 100%;
-            max-width: 960px;
+            max-width: 1080px;
             max-height: 96vh;
             background-color: #09090b;
             border: 1px solid #27272a;
@@ -571,9 +571,9 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            max-height: 75vh;
+            max-height: 65vh;
         }
-        #video-element { width: 100%; height: 100%; max-height: 75vh; object-fit: contain; }
+        #video-element { width: 100%; height: 100%; max-height: 65vh; object-fit: contain; }
 
         .modal-card.fullscreen-mode {
             max-width: 100% !important;
@@ -585,6 +585,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         }
         .modal-card.fullscreen-mode .modal-header,
         .modal-card.fullscreen-mode .resume-banner,
+        .modal-card.fullscreen-mode .player-episodes-bar,
         .modal-card.fullscreen-mode .modal-footer {
             display: none !important;
         }
@@ -598,19 +599,19 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         }
 
         .resume-banner {
-            background-color: rgba(30, 58, 138, 0.8);
-            border-top: 1px solid #1e40af;
-            border-bottom: 1px solid #1e40af;
+            background-color: rgba(153, 27, 27, 0.8);
+            border-top: 1px solid #991b1b;
+            border-bottom: 1px solid #991b1b;
             padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-size: 12px;
-            color: #bfdbfe;
+            color: #fca5a5;
             flex-shrink: 0;
         }
         .resume-btn {
-            background-color: #2563eb;
+            background-color: #dc2626;
             color: #ffffff;
             font-weight: 700;
             padding: 4px 10px;
@@ -620,14 +621,141 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             cursor: pointer;
         }
 
+        .player-episodes-bar {
+            background-color: #121215;
+            border-top: 1px solid #27272a;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .ep-controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .ep-nav-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ep-nav-btn {
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            color: #f4f4f5;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .ep-nav-btn:hover:not(:disabled) { background-color: #dc2626; border-color: #dc2626; color: #fff; }
+        .ep-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .ep-search-box {
+            position: relative;
+            flex: 1;
+            max-width: 220px;
+            min-width: 130px;
+        }
+        .ep-search-input {
+            width: 100%;
+            background-color: #18181b;
+            color: #ffffff;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            padding: 6px 10px 6px 28px;
+            font-size: 11px;
+            outline: none;
+        }
+        .ep-search-input:focus { border-color: #dc2626; }
+        .ep-search-icon {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #71717a;
+        }
+
+        .ep-carousel-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .ep-carousel-list {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 4px 2px;
+            width: 100%;
+        }
+        .ep-carousel-list::-webkit-scrollbar { height: 4px; }
+        .ep-carousel-list::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+
+        .ep-card-item {
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #a1a1aa;
+            user-select: none;
+        }
+        .ep-card-item:hover {
+            background-color: #27272a;
+            color: #ffffff;
+            border-color: #3f3f46;
+        }
+        .ep-card-item.active {
+            background-color: #dc2626;
+            border-color: #ef4444;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(220, 38, 38, 0.6);
+        }
+
+        .scroll-arrow-btn {
+            background-color: rgba(24, 24, 27, 0.8);
+            border: 1px solid #27272a;
+            color: #ffffff;
+            width: 26px;
+            height: 42px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
+            z-index: 5;
+        }
+        .scroll-arrow-btn:hover { background-color: #dc2626; border-color: #dc2626; }
+
         .modal-footer {
-            padding: 12px 16px;
+            padding: 10px 16px;
             background-color: rgba(24, 24, 27, 0.4);
             overflow-y: auto;
-            max-height: 120px;
+            max-height: 80px;
             flex-shrink: 0;
             border-top: 1px solid #27272a;
-            font-size: 12px;
+            font-size: 11px;
             color: #a1a1aa;
             line-height: 1.4;
         }
@@ -651,14 +779,14 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             cursor: pointer;
             transition: all 0.2s;
         }
-        .episode-item:hover { background-color: #27272a; border-color: #3b82f6; }
+        .episode-item:hover { background-color: #27272a; border-color: #dc2626; }
 
         :root {
-            --plyr-color-main: #2563eb;
+            --plyr-color-main: #dc2626;
             --plyr-video-control-color: #f4f4f5;
             --plyr-control-radius: 8px;
         }
-        .plyr { width: 100%; height: 100%; max-height: 75vh; }
+        .plyr { width: 100%; height: 100%; max-height: 65vh; }
         .modal-card.fullscreen-mode .plyr { max-height: 100vh !important; }
         .plyr__volume { display: flex !important; align-items: center !important; }
         .plyr__volume input[data-plyr="volume"] { display: block !important; width: 60px !important; max-width: 60px !important; margin-left: 6px !important; }
@@ -705,7 +833,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         </div>
 
         <div class="count-badge">
-            <i class="fas fa-film" style="color:#2563eb;"></i>
+            <i class="fas fa-film" style="color:#dc2626;"></i>
             <span id="total-movies-count" style="color:#ffffff; font-weight:800;">0</span> Judul
         </div>
     </header>
@@ -745,7 +873,25 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 <span id="resume-banner-text">Kamu pernah menonton film ini sampai menit ke-00:00. Lanjutkan?</span>
                 <div style="display:flex; gap:8px;">
                     <button onclick="applyResumePlayback()" class="resume-btn">Ya, Lanjutkan</button>
-                    <button onclick="dismissResumeBanner()" style="background:none; border:none; color:#93c5fd; font-size:11px; cursor:pointer;">Ulangi</button>
+                    <button onclick="dismissResumeBanner()" style="background:none; border:none; color:#fca5a5; font-size:11px; cursor:pointer;">Ulangi</button>
+                </div>
+            </div>
+
+            <div id="player-episodes-bar" class="player-episodes-bar hidden">
+                <div class="ep-controls-row">
+                    <div class="ep-nav-group">
+                        <button id="btn-prev-ep" onclick="playPrevEpisode()" class="ep-nav-btn"><i class="fas fa-chevron-left"></i> Prev</button>
+                        <button id="btn-next-ep" onclick="playNextEpisode()" class="ep-nav-btn">Next <i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="ep-search-box">
+                        <i class="fas fa-search ep-search-icon"></i>
+                        <input type="text" id="ep-search-input" oninput="filterInPlayerEpisodes(this.value)" placeholder="cari episode.." class="ep-search-input">
+                    </div>
+                </div>
+                <div class="ep-carousel-wrapper">
+                    <button onclick="scrollEpCarousel(-200)" class="scroll-arrow-btn" style="margin-right:6px;"><i class="fas fa-chevron-left"></i></button>
+                    <div id="player-episodes-carousel" class="ep-carousel-list"></div>
+                    <button onclick="scrollEpCarousel(200)" class="scroll-arrow-btn" style="margin-left:6px;"><i class="fas fa-chevron-right"></i></button>
                 </div>
             </div>
 
@@ -756,7 +902,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
     </div>
 
     <div id="toast">
-        <i id="toast-icon" class="fas fa-info-circle" style="color:#60a5fa;"></i>
+        <i id="toast-icon" class="fas fa-info-circle" style="color:#ef4444;"></i>
         <span id="toast-message"></span>
     </div>
 
@@ -767,6 +913,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         var searchQuery = '';
         var plyrPlayer = null;
         var activeMovieObject = null;
+        var activeSeriesContext = null;
+        var currentEpisodeIndex = -1;
         var pendingResumeTime = 0;
 
         function shuffleArray(array) {
@@ -848,6 +996,12 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 if (card) card.classList.remove('fullscreen-mode');
                 if (screen.orientation && typeof screen.orientation.unlock === 'function') {
                     try { screen.orientation.unlock(); } catch (e) {}
+                }
+            });
+
+            plyrPlayer.on('ended', function() {
+                if (activeSeriesContext && activeSeriesContext.episodes && currentEpisodeIndex >= 0 && currentEpisodeIndex < activeSeriesContext.episodes.length - 1) {
+                    playNextEpisode();
                 }
             });
 
@@ -1126,8 +1280,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 }
             }
 
-            shuffleArray(filtered);
-
             var countEl = document.getElementById('total-movies-count');
             if (countEl) countEl.textContent = filtered.length;
 
@@ -1176,7 +1328,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                                 genre: obj.genre,
                                 year: obj.year,
                                 description: obj.description
-                            });
+                            }, null, -1);
                         }
                     };
                 })(item);
@@ -1197,14 +1349,14 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             listEl.innerHTML = '';
 
             for (var i = 0; i < seriesObj.episodes.length; i++) {
-                (function(ep) {
+                (function(ep, index) {
                     var div = document.createElement('div');
                     div.className = 'episode-item';
                     div.innerHTML = '<div style="display:flex; flex-direction:column; min-width:0; padding-right:8px;">' +
                                         '<span style="font-size:13px; font-weight:700; color:#fff;">Eps ' + ep.episodeNumber + ': ' + ep.episodeTitle + '</span>' +
                                         '<span style="font-size:11px; color:#71717a; truncate;">Klik untuk putar</span>' +
                                     '</div>' +
-                                    '<i class="fas fa-play" style="color:#3b82f6; font-size:12px;"></i>';
+                                    '<i class="fas fa-play" style="color:#dc2626; font-size:12px;"></i>';
                     div.onclick = function() {
                         closeSeriesModal();
                         openPlayer({
@@ -1213,10 +1365,10 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                             genre: seriesObj.genre,
                             year: seriesObj.year,
                             description: ep.description || seriesObj.description
-                        });
+                        }, seriesObj, index);
                     };
                     listEl.appendChild(div);
-                })(seriesObj.episodes[i]);
+                })(seriesObj.episodes[i], i);
             }
 
             modal.className = "";
@@ -1227,8 +1379,11 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             if (modal) modal.className = "hidden";
         }
 
-        function openPlayer(movie) {
+        function openPlayer(movie, seriesContext, epIndex) {
             activeMovieObject = movie;
+            activeSeriesContext = seriesContext || null;
+            currentEpisodeIndex = (typeof epIndex === 'number') ? epIndex : -1;
+
             initPlyrPlayer();
 
             var modal = document.getElementById('player-modal');
@@ -1266,7 +1421,130 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 if (resumeBanner) resumeBanner.className = "resume-banner hidden";
             }
 
+            renderInPlayerEpisodesBar();
+
             modal.className = "";
+        }
+
+        function renderInPlayerEpisodesBar() {
+            var bar = document.getElementById('player-episodes-bar');
+            var carousel = document.getElementById('player-episodes-carousel');
+            var searchInput = document.getElementById('ep-search-input');
+            if (!bar || !carousel) return;
+
+            if (searchInput) searchInput.value = '';
+
+            if (activeSeriesContext && activeSeriesContext.episodes && activeSeriesContext.episodes.length > 0) {
+                bar.classList.remove('hidden');
+                updateEpNavButtonsState();
+                renderInPlayerEpisodeList(activeSeriesContext.episodes);
+            } else {
+                bar.classList.add('hidden');
+                carousel.innerHTML = '';
+            }
+        }
+
+        function renderInPlayerEpisodeList(epList) {
+            var carousel = document.getElementById('player-episodes-carousel');
+            if (!carousel) return;
+            carousel.innerHTML = '';
+
+            for (var i = 0; i < epList.length; i++) {
+                (function(ep, realIndex) {
+                    var card = document.createElement('div');
+                    var isCurrent = (realIndex === currentEpisodeIndex);
+                    card.className = 'ep-card-item' + (isCurrent ? ' active' : '');
+                    card.textContent = ep.episodeNumber;
+
+                    card.onclick = function() {
+                        switchPlayerEpisode(realIndex);
+                    };
+
+                    carousel.appendChild(card);
+                })(epList[i], i);
+            }
+        }
+
+        function updateEpNavButtonsState() {
+            var prevBtn = document.getElementById('btn-prev-ep');
+            var nextBtn = document.getElementById('btn-next-ep');
+            if (!activeSeriesContext || !activeSeriesContext.episodes) return;
+
+            if (prevBtn) prevBtn.disabled = (currentEpisodeIndex <= 0);
+            if (nextBtn) nextBtn.disabled = (currentEpisodeIndex >= activeSeriesContext.episodes.length - 1);
+        }
+
+        function switchPlayerEpisode(index) {
+            if (!activeSeriesContext || !activeSeriesContext.episodes || index < 0 || index >= activeSeriesContext.episodes.length) return;
+            currentEpisodeIndex = index;
+            var ep = activeSeriesContext.episodes[index];
+
+            activeMovieObject = {
+                driveId: ep.driveId,
+                title: activeSeriesContext.title + ' - Eps ' + ep.episodeNumber + ' (' + ep.episodeTitle + ')',
+                genre: activeSeriesContext.genre,
+                year: activeSeriesContext.year,
+                description: ep.description || activeSeriesContext.description
+            };
+
+            var title = document.getElementById('player-title');
+            var genre = document.getElementById('player-genre');
+            var desc = document.getElementById('player-desc');
+            if (title) title.textContent = activeMovieObject.title;
+            if (genre) genre.textContent = (activeMovieObject.genre || 'General') + ' • ' + (activeMovieObject.year || '2026');
+            if (desc) desc.textContent = activeMovieObject.description || 'Tidak ada deskripsi.';
+
+            var streamUrl = getApiUrl('/api/stream?id=' + ep.driveId);
+            if (plyrPlayer) {
+                plyrPlayer.source = {
+                    type: 'video',
+                    title: activeMovieObject.title,
+                    sources: [{ src: streamUrl, type: 'video/mp4' }]
+                };
+                plyrPlayer.play();
+            }
+
+            dismissResumeBanner();
+            updateEpNavButtonsState();
+            renderInPlayerEpisodeList(activeSeriesContext.episodes);
+            showToast('Memutar Episode ' + ep.episodeNumber);
+        }
+
+        function playNextEpisode() {
+            if (activeSeriesContext && currentEpisodeIndex < activeSeriesContext.episodes.length - 1) {
+                switchPlayerEpisode(currentEpisodeIndex + 1);
+            }
+        }
+
+        function playPrevEpisode() {
+            if (activeSeriesContext && currentEpisodeIndex > 0) {
+                switchPlayerEpisode(currentEpisodeIndex - 1);
+            }
+        }
+
+        function filterInPlayerEpisodes(q) {
+            if (!activeSeriesContext || !activeSeriesContext.episodes) return;
+            var query = q.toLowerCase().trim();
+            if (!query) {
+                renderInPlayerEpisodeList(activeSeriesContext.episodes);
+                return;
+            }
+
+            var filtered = [];
+            for (var i = 0; i < activeSeriesContext.episodes.length; i++) {
+                var ep = activeSeriesContext.episodes[i];
+                var strNum = '' + ep.episodeNumber;
+                var strTitle = (ep.episodeTitle || '').toLowerCase();
+                if (strNum.indexOf(query) !== -1 || strTitle.indexOf(query) !== -1) {
+                    filtered.push(ep);
+                }
+            }
+            renderInPlayerEpisodeList(filtered);
+        }
+
+        function scrollEpCarousel(amount) {
+            var carousel = document.getElementById('player-episodes-carousel');
+            if (carousel) carousel.scrollBy({ left: amount, behavior: 'smooth' });
         }
 
         function applyResumePlayback() {
@@ -1303,6 +1581,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 try { plyrPlayer.stop(); } catch (e) {}
             }
             activeMovieObject = null;
+            activeSeriesContext = null;
+            currentEpisodeIndex = -1;
             pendingResumeTime = 0;
             if (resumeBanner) resumeBanner.className = "resume-banner hidden";
             if (modal) modal.className = "hidden";
@@ -1425,5 +1705,16 @@ if (require.main === module) {
         handleRequest(req, res);
     });
 
-    server.listen(PORT, () => {});
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            process.exit(1);
+        }
+    });
+
+    server.listen(PORT, () => {
+        console.log("\n==================================================");
+        console.log("STREAMHUB PORTAL STREAMING SERVER READY");
+        console.log(`Buka: http://localhost:${PORT}`);
+        console.log("==================================================\n");
+    });
 }
