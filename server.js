@@ -731,6 +731,47 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             box-shadow: 0 0 12px rgba(220, 38, 38, 0.6);
         }
 
+        .franchise-card-item {
+            flex: 0 0 54px;
+            height: 72px;
+            background-color: #18181b;
+            border: 2px solid #27272a;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .franchise-card-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+        .franchise-card-item .part-number-badge {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            transition: background 0.2s;
+        }
+        .franchise-card-item:hover .part-number-badge {
+            background: rgba(0, 0, 0, 0.25);
+        }
+        .franchise-card-item.active {
+            border-color: #dc2626;
+            box-shadow: 0 0 12px rgba(220, 38, 38, 0.8);
+        }
+        .franchise-card-item.active .part-number-badge {
+            color: #f87171;
+            background: rgba(220, 38, 38, 0.35);
+        }
+
         .scroll-arrow-btn {
             background-color: rgba(24, 24, 27, 0.8);
             border: 1px solid #27272a;
@@ -847,7 +888,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             <div class="modal-header">
                 <div>
                     <div id="series-modal-title" class="modal-title">Judul Series</div>
-                    <div id="series-modal-sub" class="modal-sub">Pilih Episode</div>
+                    <div id="series-modal-sub" class="modal-sub">Pilih Bagian / Episode</div>
                 </div>
                 <button onclick="closeSeriesModal()" class="close-btn"><i class="fas fa-times"></i></button>
             </div>
@@ -885,7 +926,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                     </div>
                     <div class="ep-search-box">
                         <i class="fas fa-search ep-search-icon"></i>
-                        <input type="text" id="ep-search-input" oninput="filterInPlayerEpisodes(this.value)" placeholder="cari episode.." class="ep-search-input">
+                        <input type="text" id="ep-search-input" oninput="filterInPlayerEpisodes(this.value)" placeholder="cari judul/eps.." class="ep-search-input">
                     </div>
                 </div>
                 <div class="ep-carousel-wrapper">
@@ -1130,6 +1171,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                     if (!map[titleKey]) {
                         map[titleKey] = {
                             isSeries: true,
+                            isFranchise: false,
                             title: m.title,
                             poster: m.poster,
                             genre: m.genre || 'Series / Anime',
@@ -1144,6 +1186,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                             driveId: ep.driveId,
                             episodeNumber: ep.episodeNumber || (e + 1),
                             episodeTitle: ep.episodeTitle || ('Episode ' + (e + 1)),
+                            poster: m.poster,
                             description: m.description
                         });
                     }
@@ -1152,6 +1195,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                     if (!map[titleKey]) {
                         map[titleKey] = {
                             isSeries: true,
+                            isFranchise: true,
                             title: m.title,
                             poster: m.poster,
                             genre: m.genre || 'Franchise',
@@ -1166,6 +1210,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                             driveId: mov.driveId,
                             episodeNumber: mov.part || (f + 1),
                             episodeTitle: mov.title + (mov.year ? ' (' + mov.year + ')' : ''),
+                            poster: mov.poster || m.poster,
                             description: m.description
                         });
                     }
@@ -1173,6 +1218,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                     var uniqueKey = 'movie_' + (m.driveId || i);
                     map[uniqueKey] = {
                         isSeries: false,
+                        isFranchise: false,
                         title: m.title,
                         poster: m.poster,
                         genre: m.genre || 'Movie',
@@ -1301,12 +1347,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 var badgeHtml = '';
 
                 if (item.isSeries) {
-                    badgeHtml = '<div class="episodes-badge">' + item.episodes.length + ' Eps</div>';
-                } else {
-                    var hasHistory = history[item.driveId] && history[item.driveId].timestamp > 10;
-                    if (hasHistory) {
-                        badgeHtml = '<div class="history-badge"><i class="fas fa-history" style="font-size:8px;"></i> Lanjut</div>';
-                    }
+                    var countText = item.isFranchise ? (item.episodes.length + ' Film') : (item.episodes.length + ' Eps');
+                    badgeHtml = '<div class="episodes-badge">' + countText + '</div>';
                 }
 
                 card.innerHTML = '<div class="poster-box">' +
@@ -1345,7 +1387,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             if (!modal) return;
 
             titleEl.textContent = seriesObj.title;
-            subEl.textContent = seriesObj.episodes.length + ' Episode Tersedia';
+            subEl.textContent = seriesObj.episodes.length + (seriesObj.isFranchise ? ' Film Tersedia' : ' Episode Tersedia');
             listEl.innerHTML = '';
 
             for (var i = 0; i < seriesObj.episodes.length; i++) {
@@ -1353,15 +1395,15 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                     var div = document.createElement('div');
                     div.className = 'episode-item';
                     div.innerHTML = '<div style="display:flex; flex-direction:column; min-width:0; padding-right:8px;">' +
-                                        '<span style="font-size:13px; font-weight:700; color:#fff;">Eps ' + ep.episodeNumber + ': ' + ep.episodeTitle + '</span>' +
-                                        '<span style="font-size:11px; color:#71717a; truncate;">Klik untuk putar</span>' +
+                                        '<span style="font-size:13px; font-weight:700; color:#fff;">' + ep.episodeTitle + '</span>' +
+                                        '<span style="font-size:11px; color:#71717a;">Klik untuk putar</span>' +
                                     '</div>' +
                                     '<i class="fas fa-play" style="color:#dc2626; font-size:12px;"></i>';
                     div.onclick = function() {
                         closeSeriesModal();
                         openPlayer({
                             driveId: ep.driveId,
-                            title: seriesObj.title + ' - Eps ' + ep.episodeNumber + ' (' + ep.episodeTitle + ')',
+                            title: seriesObj.title + ' - ' + ep.episodeTitle,
                             genre: seriesObj.genre,
                             year: seriesObj.year,
                             description: ep.description || seriesObj.description
@@ -1449,12 +1491,22 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             if (!carousel) return;
             carousel.innerHTML = '';
 
+            var isFranchise = activeSeriesContext && activeSeriesContext.isFranchise;
+
             for (var i = 0; i < epList.length; i++) {
                 (function(ep, realIndex) {
                     var card = document.createElement('div');
                     var isCurrent = (realIndex === currentEpisodeIndex);
-                    card.className = 'ep-card-item' + (isCurrent ? ' active' : '');
-                    card.textContent = ep.episodeNumber;
+
+                    if (isFranchise) {
+                        card.className = 'franchise-card-item' + (isCurrent ? ' active' : '');
+                        var posterUrl = ep.poster || activeSeriesContext.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800';
+                        card.innerHTML = '<img src="' + posterUrl + '" onerror="handleImgError(this)" title="' + ep.episodeTitle + '">' +
+                            '<div class="part-number-badge">' + ep.episodeNumber + '</div>';
+                    } else {
+                        card.className = 'ep-card-item' + (isCurrent ? ' active' : '');
+                        card.textContent = ep.episodeNumber;
+                    }
 
                     card.onclick = function() {
                         switchPlayerEpisode(realIndex);
@@ -1479,9 +1531,11 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             currentEpisodeIndex = index;
             var ep = activeSeriesContext.episodes[index];
 
+            var fullTitle = activeSeriesContext.isFranchise ? (activeSeriesContext.title + ' - ' + ep.episodeTitle) : (activeSeriesContext.title + ' - Eps ' + ep.episodeNumber + ' (' + ep.episodeTitle + ')');
+
             activeMovieObject = {
                 driveId: ep.driveId,
-                title: activeSeriesContext.title + ' - Eps ' + ep.episodeNumber + ' (' + ep.episodeTitle + ')',
+                title: fullTitle,
                 genre: activeSeriesContext.genre,
                 year: activeSeriesContext.year,
                 description: ep.description || activeSeriesContext.description
@@ -1507,7 +1561,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             dismissResumeBanner();
             updateEpNavButtonsState();
             renderInPlayerEpisodeList(activeSeriesContext.episodes);
-            showToast('Memutar Episode ' + ep.episodeNumber);
+            showToast('Memutar ' + ep.episodeTitle);
         }
 
         function playNextEpisode() {
@@ -1666,6 +1720,15 @@ async function handleRequest(req, res) {
             const authObj = getNextRotatedAuth();
             const drive = google.drive({ version: 'v3', auth: authObj.client });
             let { data: movies } = await getMetadataFile(drive);
+
+            // Sorting otomatis untuk franchise movies berdasarkan part agar berurutan 1, 2, 3, 4, 5
+            if (Array.isArray(movies)) {
+                movies.forEach(item => {
+                    if (item.type === 'franchise' && Array.isArray(item.movies)) {
+                        item.movies.sort((a, b) => (a.part || 0) - (b.part || 0));
+                    }
+                });
+            }
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ movies: Array.isArray(movies) ? movies : [] }));
