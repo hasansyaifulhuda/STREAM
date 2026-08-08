@@ -236,7 +236,7 @@ async function executeStreamWithRotator(fileId, rangeHeader, req, res) {
         fileSize = await fetchDriveFileSizeWithRotator(fileId);
     } catch (e) {}
 
-    const BURST_CHUNK_SIZE = 8 * 1024 * 1024;
+    const BURST_CHUNK_SIZE = 32 * 1024 * 1024;
     let start = 0;
     let end = fileSize > 0 ? fileSize - 1 : BURST_CHUNK_SIZE - 1;
 
@@ -926,7 +926,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             </div>
             
             <div class="modal-video-wrapper">
-                <video id="video-element" playsinline controls></video>
+                <video id="video-element" playsinline controls preload="auto"></video>
             </div>
 
             <div id="resume-banner" class="resume-banner hidden">
