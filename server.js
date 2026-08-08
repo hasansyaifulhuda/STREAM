@@ -1,3 +1,7 @@
+try {
+    require('dotenv').config();
+} catch (e) {}
+
 const { google } = require('googleapis');
 const http = require('http');
 const https = require('https');
@@ -40,11 +44,15 @@ function loadEnvFile() {
                         if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
                             val = val.slice(1, -1);
                         }
-                        process.env[key] = val;
+                        if (!process.env[key]) {
+                            process.env[key] = val;
+                        }
                     }
                 }
             });
-        } catch (e) {}
+        } catch (e) {
+            console.error("Error loading .env file manually:", e.message);
+        }
     }
 }
 loadEnvFile();
@@ -69,32 +77,60 @@ let saPoolIndex = 0;
 
 function getAuthClientsPool() {
     const clients = [];
+
+    // Option 1: GOOGLE_SERVICE_ACCOUNTS JSON array
     if (process.env.GOOGLE_SERVICE_ACCOUNTS) {
         try {
             const rawList = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNTS);
             if (Array.isArray(rawList)) {
                 for (const sa of rawList) {
-                    const jwt = new google.auth.JWT(
-                        sa.client_email,
-                        null,
-                        sa.private_key,
-                        ['https://www.googleapis.com/auth/drive']
-                    );
-                    clients.push({ client: jwt, type: 'sa', email: sa.client_email });
+                    if (sa && sa.client_email && sa.private_key) {
+                        const formattedPrivateKey = sa.private_key.replace(/\\n/g, '\n');
+                        const jwt = new google.auth.JWT(
+                            sa.client_email,
+                            null,
+                            formattedPrivateKey,
+                            ['https://www.googleapis.com/auth/drive']
+                        );
+                        clients.push({ client: jwt, type: 'sa', email: sa.client_email });
+                    }
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error("Error parsing GOOGLE_SERVICE_ACCOUNTS JSON:", e.message);
+        }
     }
 
+    // Option 2: Single Service Account env variables
+    if (clients.length === 0 && process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+        try {
+            const formattedPrivateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+            const jwt = new google.auth.JWT(
+                process.env.GOOGLE_CLIENT_EMAIL,
+                null,
+                formattedPrivateKey,
+                ['https://www.googleapis.com/auth/drive']
+            );
+            clients.push({ client: jwt, type: 'sa', email: process.env.GOOGLE_CLIENT_EMAIL });
+        } catch (e) {
+            console.error("Error setting up single Service Account:", e.message);
+        }
+    }
+
+    // Option 3: Fallback OAuth2 Credentials
     if (clients.length === 0) {
-        const oauth2Client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET
-        );
-        oauth2Client.setCredentials({
-            refresh_token: process.env.GOOGLE_REFRESH_TOKEN
-        });
-        clients.push({ client: oauth2Client, type: 'oauth', email: 'OAuth2_User' });
+        if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
+            const oauth2Client = new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET
+            );
+            oauth2Client.setCredentials({
+                refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+            });
+            clients.push({ client: oauth2Client, type: 'oauth', email: 'OAuth2_User' });
+        } else {
+            console.warn("Peringatan: Kredensial Google Drive (Service Account / OAuth2) tidak ditemukan atau belum valid di file .env");
+        }
     }
 
     return clients;
@@ -102,6 +138,9 @@ function getAuthClientsPool() {
 
 function getNextRotatedAuth() {
     const pool = getAuthClientsPool();
+    if (pool.length === 0) {
+        throw new Error("Tidak ada akun autentikasi Google Drive yang valid di .env.");
+    }
     const selected = pool[saPoolIndex % pool.length];
     saPoolIndex = (saPoolIndex + 1) % pool.length;
     return selected;
@@ -141,11 +180,13 @@ async function getMetadataFile(drive) {
             setCache(cacheKey, result, 10 * 60 * 1000);
             return result;
         } catch (e) {
+            console.error("Error parsing content of metadata.json from Drive:", e.message);
             const result = { fileId, data: [] };
             setCache(cacheKey, result, 10 * 60 * 1000);
             return result;
         }
     } else {
+        console.warn(`File 'metadata.json' tidak ditemukan di folder Drive ID: ${folderId}`);
         const result = { fileId: null, data: [] };
         setCache(cacheKey, result, 10 * 60 * 1000);
         return result;
@@ -288,6 +329,7 @@ async function executeStreamWithRotator(fileId, rangeHeader, req, res) {
     }
 
     if (!res.headersSent) {
+        console.error("Execute Stream Error:", lastError ? lastError.message : "All SAs failed");
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: lastError ? lastError.message : "Gagal memutar video dari seluruh Service Account." }));
     }
@@ -1150,7 +1192,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                         updateDynamicCategories();
                         renderCatalog();
                     })
-                    .catch(function() {
+                    .catch(function(err) {
+                        console.error("Fetch movies error:", err);
                         rawMoviesData = [];
                         processAndGroupCatalog();
                         updateDynamicCategories();
@@ -1467,7 +1510,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             titleEl.textContent = seriesObj.title + ' - Season ' + seasonObj.seasonNumber;
             subEl.textContent = seasonObj.episodes.length + ' Episode Tersedia (Klik untuk kembali ke Season)';
             
-            // Tambahkan tombol kembali ke daftar season di atas
             listEl.innerHTML = '<div onclick="openSeriesModal(currentSeriesModalData)" style="font-size:11px; color:#f87171; cursor:pointer; margin-bottom:4px;"><i class="fas fa-arrow-left"></i> Kembali ke Pilih Season</div>';
 
             for (var i = 0; i < seasonObj.episodes.length; i++) {
@@ -1810,6 +1852,7 @@ async function handleRequest(req, res) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ movies: Array.isArray(movies) ? movies : [] }));
         } catch (err) {
+            console.error("Error in /api/movies endpoint:", err);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: err.message, movies: [] }));
         }
@@ -1847,6 +1890,7 @@ if (require.main === module) {
 
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
+            console.error(`Port ${PORT} sudah digunakan.`);
             process.exit(1);
         }
     });
