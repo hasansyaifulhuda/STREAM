@@ -236,7 +236,7 @@ async function executeStreamWithRotator(fileId, rangeHeader, req, res) {
         fileSize = await fetchDriveFileSizeWithRotator(fileId);
     } catch (e) {}
 
-    const BURST_CHUNK_SIZE = 32 * 1024 * 1024;
+    const BURST_CHUNK_SIZE = 4 * 1024 * 1024;
     let start = 0;
     let end = fileSize > 0 ? fileSize - 1 : BURST_CHUNK_SIZE - 1;
 
