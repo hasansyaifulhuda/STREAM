@@ -50,9 +50,7 @@ function loadEnvFile() {
                     }
                 }
             });
-        } catch (e) {
-            console.error("Error loading .env file manually:", e.message);
-        }
+        } catch (e) {}
     }
 }
 loadEnvFile();
@@ -78,7 +76,6 @@ let saPoolIndex = 0;
 function getAuthClientsPool() {
     const clients = [];
 
-    // Option 1: GOOGLE_SERVICE_ACCOUNTS JSON array
     if (process.env.GOOGLE_SERVICE_ACCOUNTS) {
         try {
             const rawList = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNTS);
@@ -96,12 +93,9 @@ function getAuthClientsPool() {
                     }
                 }
             }
-        } catch (e) {
-            console.error("Error parsing GOOGLE_SERVICE_ACCOUNTS JSON:", e.message);
-        }
+        } catch (e) {}
     }
 
-    // Option 2: Single Service Account env variables
     if (clients.length === 0 && process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
         try {
             const formattedPrivateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
@@ -112,12 +106,9 @@ function getAuthClientsPool() {
                 ['https://www.googleapis.com/auth/drive']
             );
             clients.push({ client: jwt, type: 'sa', email: process.env.GOOGLE_CLIENT_EMAIL });
-        } catch (e) {
-            console.error("Error setting up single Service Account:", e.message);
-        }
+        } catch (e) {}
     }
 
-    // Option 3: Fallback OAuth2 Credentials
     if (clients.length === 0) {
         if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
             const oauth2Client = new google.auth.OAuth2(
@@ -128,8 +119,6 @@ function getAuthClientsPool() {
                 refresh_token: process.env.GOOGLE_REFRESH_TOKEN
             });
             clients.push({ client: oauth2Client, type: 'oauth', email: 'OAuth2_User' });
-        } else {
-            console.warn("Peringatan: Kredensial Google Drive (Service Account / OAuth2) tidak ditemukan atau belum valid di file .env");
         }
     }
 
@@ -180,13 +169,11 @@ async function getMetadataFile(drive) {
             setCache(cacheKey, result, 10 * 60 * 1000);
             return result;
         } catch (e) {
-            console.error("Error parsing content of metadata.json from Drive:", e.message);
             const result = { fileId, data: [] };
             setCache(cacheKey, result, 10 * 60 * 1000);
             return result;
         }
     } else {
-        console.warn(`File 'metadata.json' tidak ditemukan di folder Drive ID: ${folderId}`);
         const result = { fileId: null, data: [] };
         setCache(cacheKey, result, 10 * 60 * 1000);
         return result;
@@ -329,7 +316,6 @@ async function executeStreamWithRotator(fileId, rangeHeader, req, res) {
     }
 
     if (!res.headersSent) {
-        console.error("Execute Stream Error:", lastError ? lastError.message : "All SAs failed");
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: lastError ? lastError.message : "Gagal memutar video dari seluruh Service Account." }));
     }
@@ -340,7 +326,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shanz Stream - Portal</title>
+    <title>Shanz</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icon.png">
@@ -371,14 +357,13 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             position: sticky;
             top: 0;
             z-index: 40;
-            background-color: rgba(9, 9, 11, 0.92);
+            background-color: #09090b;
             border-bottom: 1px solid #27272a;
             padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            backdrop-filter: blur(10px);
         }
 
         .dropdown-container { position: relative; flex-shrink: 0; }
@@ -394,7 +379,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
         }
         .btn-dropdown:hover { background-color: #27272a; }
 
@@ -407,7 +391,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             background-color: #18181b;
             border: 1px solid #27272a;
             border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
             z-index: 50;
             padding: 6px 0;
             max-height: 240px;
@@ -439,7 +423,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             padding: 8px 12px 8px 32px;
             font-size: 12px;
             outline: none;
-            transition: border-color 0.2s;
         }
         .search-input:focus { border-color: #dc2626; }
         .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #71717a; }
@@ -471,19 +454,16 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 
         .movie-card {
             position: relative;
-            background-color: rgba(24, 24, 27, 0.7);
+            background-color: #18181b;
             border: 1px solid #27272a;
             border-radius: 14px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.25s ease;
             display: flex;
             flex-direction: column;
         }
         .movie-card:hover {
-            border-color: rgba(220, 38, 38, 0.6);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+            border-color: rgba(220, 38, 38, 0.8);
         }
 
         .poster-box {
@@ -501,15 +481,13 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             height: 100%;
             object-fit: fill;
             object-position: center;
-            transition: transform 0.3s;
         }
-        .movie-card:hover .poster-box img { transform: scale(1.05); }
 
         .year-badge {
             position: absolute;
             top: 8px;
             left: 8px;
-            background-color: rgba(220, 38, 38, 0.9);
+            background-color: rgba(220, 38, 38, 0.95);
             color: #ffffff;
             font-size: 10px;
             font-weight: 800;
@@ -521,7 +499,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             position: absolute;
             top: 8px;
             right: 8px;
-            background-color: rgba(168, 85, 247, 0.9);
+            background-color: rgba(168, 85, 247, 0.95);
             color: #ffffff;
             font-size: 10px;
             font-weight: 800;
@@ -553,12 +531,11 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             z-index: 1000;
-            background-color: rgba(0, 0, 0, 0.88);
+            background-color: rgba(0, 0, 0, 0.92);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 12px;
-            backdrop-filter: blur(5px);
         }
         .hidden { display: none !important; }
 
@@ -571,15 +548,14 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             border: 1px solid #27272a;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
             display: flex;
             flex-direction: column;
-            transition: all 0.3s ease;
         }
 
         .modal-header {
             padding: 12px 16px;
-            background-color: rgba(24, 24, 27, 0.9);
+            background-color: #18181b;
             border-bottom: 1px solid #27272a;
             display: flex;
             align-items: center;
@@ -608,14 +584,20 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             position: relative;
             width: 100%;
             background-color: #000;
-            flex: 1 1 auto;
+            flex: 0 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            max-height: 65vh;
+            height: 56vh;
+            max-height: 56vh;
         }
-        #video-element { width: 100%; height: 100%; max-height: 65vh; object-fit: contain; }
+        #video-element { 
+            width: 100% !important; 
+            height: 100% !important; 
+            max-height: 56vh !important; 
+            object-fit: contain !important; 
+        }
 
         .modal-card.fullscreen-mode {
             max-width: 100% !important;
@@ -639,9 +621,13 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             max-height: 100vh !important;
             height: 100vh !important;
         }
+        .modal-card.fullscreen-mode .plyr {
+            max-height: 100vh !important;
+            height: 100vh !important;
+        }
 
         .resume-banner {
-            background-color: rgba(153, 27, 27, 0.8);
+            background-color: rgba(153, 27, 27, 0.9);
             border-top: 1px solid #991b1b;
             border-bottom: 1px solid #991b1b;
             padding: 10px 16px;
@@ -696,7 +682,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: all 0.2s;
         }
         .ep-nav-btn:hover:not(:disabled) { background-color: #dc2626; border-color: #dc2626; color: #fff; }
         .ep-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -752,7 +737,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             border: 1px solid #27272a;
             border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -770,7 +754,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             background-color: #dc2626;
             border-color: #ef4444;
             color: #ffffff;
-            box-shadow: 0 0 12px rgba(220, 38, 38, 0.6);
         }
 
         .franchise-card-item {
@@ -781,7 +764,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             border-radius: 8px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.2s;
             position: relative;
         }
         .franchise-card-item img {
@@ -800,14 +782,10 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             font-size: 14px;
             font-weight: 800;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            transition: background 0.2s;
-        }
-        .franchise-card-item:hover .part-number-badge {
-            background: rgba(0, 0, 0, 0.25);
         }
         .franchise-card-item.active {
             border-color: #dc2626;
-            box-shadow: 0 0 12px rgba(220, 38, 38, 0.8);
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.8);
         }
         .franchise-card-item.active .part-number-badge {
             color: #f87171;
@@ -815,7 +793,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         }
 
         .scroll-arrow-btn {
-            background-color: rgba(24, 24, 27, 0.8);
+            background-color: #18181b;
             border: 1px solid #27272a;
             color: #ffffff;
             width: 26px;
@@ -860,7 +838,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
-            transition: all 0.2s;
         }
         .episode-item:hover { background-color: #27272a; border-color: #dc2626; }
 
@@ -869,8 +846,8 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             --plyr-video-control-color: #f4f4f5;
             --plyr-control-radius: 8px;
         }
-        .plyr { width: 100%; height: 100%; max-height: 65vh; }
-        .modal-card.fullscreen-mode .plyr { max-height: 100vh !important; }
+        .plyr { width: 100% !important; height: 100% !important; max-height: 56vh !important; display: flex; align-items: center; justify-content: center; }
+        .plyr video { object-fit: contain !important; width: 100% !important; height: 100% !important; }
         .plyr__volume { display: flex !important; align-items: center !important; }
         .plyr__volume input[data-plyr="volume"] { display: block !important; width: 60px !important; max-width: 60px !important; margin-left: 6px !important; }
         #boost-btn { background: transparent !important; border: none !important; border-radius: 6px !important; padding: 6px 8px !important; font-size: 12px !important; color: #fff; cursor: pointer; }
@@ -1193,7 +1170,6 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                         renderCatalog();
                     })
                     .catch(function(err) {
-                        console.error("Fetch movies error:", err);
                         rawMoviesData = [];
                         processAndGroupCatalog();
                         updateDynamicCategories();
@@ -1852,7 +1828,6 @@ async function handleRequest(req, res) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ movies: Array.isArray(movies) ? movies : [] }));
         } catch (err) {
-            console.error("Error in /api/movies endpoint:", err);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: err.message, movies: [] }));
         }
@@ -1890,12 +1865,11 @@ if (require.main === module) {
 
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
-            console.error(`Port ${PORT} sudah digunakan.`);
             process.exit(1);
         }
     });
 
-    server.listen(PORT, () => {
+     server.listen(PORT, () => {
         console.log("\n==================================================");
         console.log("STREAMHUB PORTAL STREAMING SERVER READY");
         console.log(`Buka: http://localhost:${PORT}`);
