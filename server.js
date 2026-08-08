@@ -888,7 +888,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             <div class="modal-header">
                 <div>
                     <div id="series-modal-title" class="modal-title">Judul Series</div>
-                    <div id="series-modal-sub" class="modal-sub">Pilih Bagian / Episode</div>
+                    <div id="series-modal-sub" class="modal-sub">Pilih Season</div>
                 </div>
                 <button onclick="closeSeriesModal()" class="close-btn"><i class="fas fa-times"></i></button>
             </div>
@@ -957,6 +957,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         var activeSeriesContext = null;
         var currentEpisodeIndex = -1;
         var pendingResumeTime = 0;
+        var currentSeriesModalData = null;
 
         function shuffleArray(array) {
             for (var i = array.length - 1; i > 0; i--) {
@@ -1177,12 +1178,20 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                             genre: m.genre || 'Series / Anime',
                             year: m.year || '2026',
                             description: m.description,
+                            seasons: {}
+                        };
+                    }
+                    var sNum = m.seasonNumber || 1;
+                    if (!map[titleKey].seasons[sNum]) {
+                        map[titleKey].seasons[sNum] = {
+                            seasonNumber: sNum,
+                            title: 'Season ' + sNum,
                             episodes: []
                         };
                     }
                     for (var e = 0; e < m.episodes.length; e++) {
                         var ep = m.episodes[e];
-                        map[titleKey].episodes.push({
+                        map[titleKey].seasons[sNum].episodes.push({
                             driveId: ep.driveId,
                             episodeNumber: ep.episodeNumber || (e + 1),
                             episodeTitle: ep.episodeTitle || ('Episode ' + (e + 1)),
@@ -1201,12 +1210,14 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                             genre: m.genre || 'Franchise',
                             year: m.year || '2026',
                             description: m.description,
-                            episodes: []
+                            seasons: {
+                                1: { seasonNumber: 1, title: 'Film Series', episodes: [] }
+                            }
                         };
                     }
                     for (var f = 0; f < m.movies.length; f++) {
                         var mov = m.movies[f];
-                        map[titleKey].episodes.push({
+                        map[titleKey].seasons[1].episodes.push({
                             driveId: mov.driveId,
                             episodeNumber: mov.part || (f + 1),
                             episodeTitle: mov.title + (mov.year ? ' (' + mov.year + ')' : ''),
@@ -1231,10 +1242,16 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
 
             groupedCatalog = [];
             for (var k in map) {
-                if (map[k].isSeries && map[k].episodes.length > 0) {
-                    map[k].episodes.sort(function(a, b) { return a.episodeNumber - b.episodeNumber; });
+                var obj = map[k];
+                if (obj.isSeries) {
+                    obj.seasonsList = [];
+                    for (var sKey in obj.seasons) {
+                        obj.seasons[sKey].episodes.sort(function(a, b) { return a.episodeNumber - b.episodeNumber; });
+                        obj.seasonsList.push(obj.seasons[sKey]);
+                    }
+                    obj.seasonsList.sort(function(a, b) { return a.seasonNumber - b.seasonNumber; });
                 }
-                groupedCatalog.push(map[k]);
+                groupedCatalog.push(obj);
             }
             shuffleArray(groupedCatalog);
         }
@@ -1347,7 +1364,9 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                 var badgeHtml = '';
 
                 if (item.isSeries) {
-                    var countText = item.isFranchise ? (item.episodes.length + ' Film') : (item.episodes.length + ' Eps');
+                    var totalEps = 0;
+                    item.seasonsList.forEach(function(s) { totalEps += s.episodes.length; });
+                    var countText = item.isFranchise ? (totalEps + ' Film') : (totalEps + ' Eps');
                     badgeHtml = '<div class="episodes-badge">' + countText + '</div>';
                 }
 
@@ -1380,6 +1399,7 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
         }
 
         function openSeriesModal(seriesObj) {
+            currentSeriesModalData = seriesObj;
             var modal = document.getElementById('series-modal');
             var titleEl = document.getElementById('series-modal-title');
             var subEl = document.getElementById('series-modal-sub');
@@ -1387,15 +1407,75 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
             if (!modal) return;
 
             titleEl.textContent = seriesObj.title;
-            subEl.textContent = seriesObj.episodes.length + (seriesObj.isFranchise ? ' Film Tersedia' : ' Episode Tersedia');
-            listEl.innerHTML = '';
 
-            for (var i = 0; i < seriesObj.episodes.length; i++) {
+            if (seriesObj.isFranchise) {
+                subEl.textContent = seriesObj.seasonsList[0].episodes.length + ' Film Tersedia';
+                listEl.innerHTML = '';
+                var eps = seriesObj.seasonsList[0].episodes;
+                for (var i = 0; i < eps.length; i++) {
+                    (function(ep, index) {
+                        var div = document.createElement('div');
+                        div.className = 'episode-item';
+                        div.innerHTML = '<div style="display:flex; flex-direction:column; min-width:0; padding-right:8px;">' +
+                                            '<span style="font-size:13px; font-weight:700; color:#fff;">' + ep.episodeTitle + '</span>' +
+                                            '<span style="font-size:11px; color:#71717a;">Klik untuk putar</span>' +
+                                        '</div>' +
+                                        '<i class="fas fa-play" style="color:#dc2626; font-size:12px;"></i>';
+                        div.onclick = function() {
+                            closeSeriesModal();
+                            openPlayer({
+                                driveId: ep.driveId,
+                                title: seriesObj.title + ' - ' + ep.episodeTitle,
+                                genre: seriesObj.genre,
+                                year: seriesObj.year,
+                                description: ep.description || seriesObj.description
+                            }, { title: seriesObj.title, genre: seriesObj.genre, year: seriesObj.year, description: seriesObj.description, episodes: eps, isFranchise: true }, index);
+                        };
+                        listEl.appendChild(div);
+                    })(eps[i], i);
+                }
+            } else {
+                subEl.textContent = seriesObj.seasonsList.length + ' Season Tersedia (Pilih Season)';
+                listEl.innerHTML = '';
+                var seasons = seriesObj.seasonsList;
+                for (var s = 0; s < seasons.length; s++) {
+                    (function(seasonObj) {
+                        var div = document.createElement('div');
+                        div.className = 'episode-item';
+                        div.innerHTML = '<div style="display:flex; flex-direction:column; min-width:0; padding-right:8px;">' +
+                                            '<span style="font-size:13px; font-weight:700; color:#fff;">Season ' + seasonObj.seasonNumber + '</span>' +
+                                            '<span style="font-size:11px; color:#71717a;">' + seasonObj.episodes.length + ' Episode</span>' +
+                                        '</div>' +
+                                        '<i class="fas fa-chevron-right" style="color:#dc2626; font-size:12px;"></i>';
+                        div.onclick = function() {
+                            renderEpisodesForSeason(seriesObj, seasonObj);
+                        };
+                        listEl.appendChild(div);
+                    })(seasons[s]);
+                }
+            }
+
+            modal.className = "";
+        }
+
+        function renderEpisodesForSeason(seriesObj, seasonObj) {
+            var titleEl = document.getElementById('series-modal-title');
+            var subEl = document.getElementById('series-modal-sub');
+            var listEl = document.getElementById('series-episodes-list');
+            if (!listEl) return;
+
+            titleEl.textContent = seriesObj.title + ' - Season ' + seasonObj.seasonNumber;
+            subEl.textContent = seasonObj.episodes.length + ' Episode Tersedia (Klik untuk kembali ke Season)';
+            
+            // Tambahkan tombol kembali ke daftar season di atas
+            listEl.innerHTML = '<div onclick="openSeriesModal(currentSeriesModalData)" style="font-size:11px; color:#f87171; cursor:pointer; margin-bottom:4px;"><i class="fas fa-arrow-left"></i> Kembali ke Pilih Season</div>';
+
+            for (var i = 0; i < seasonObj.episodes.length; i++) {
                 (function(ep, index) {
                     var div = document.createElement('div');
                     div.className = 'episode-item';
                     div.innerHTML = '<div style="display:flex; flex-direction:column; min-width:0; padding-right:8px;">' +
-                                        '<span style="font-size:13px; font-weight:700; color:#fff;">' + ep.episodeTitle + '</span>' +
+                                        '<span style="font-size:13px; font-weight:700; color:#fff;">Eps ' + ep.episodeNumber + ': ' + ep.episodeTitle + '</span>' +
                                         '<span style="font-size:11px; color:#71717a;">Klik untuk putar</span>' +
                                     '</div>' +
                                     '<i class="fas fa-play" style="color:#dc2626; font-size:12px;"></i>';
@@ -1403,17 +1483,15 @@ const INDEX_HTML_TEMPLATE = `<!DOCTYPE html>
                         closeSeriesModal();
                         openPlayer({
                             driveId: ep.driveId,
-                            title: seriesObj.title + ' - ' + ep.episodeTitle,
+                            title: seriesObj.title + ' S' + seasonObj.seasonNumber + ' - Eps ' + ep.episodeNumber + ' (' + ep.episodeTitle + ')',
                             genre: seriesObj.genre,
                             year: seriesObj.year,
                             description: ep.description || seriesObj.description
-                        }, seriesObj, index);
+                        }, { title: seriesObj.title, genre: seriesObj.genre, year: seriesObj.year, description: seriesObj.description, episodes: seasonObj.episodes, isFranchise: false }, index);
                     };
                     listEl.appendChild(div);
-                })(seriesObj.episodes[i], i);
+                })(seasonObj.episodes[i], i);
             }
-
-            modal.className = "";
         }
 
         function closeSeriesModal() {
@@ -1721,7 +1799,6 @@ async function handleRequest(req, res) {
             const drive = google.drive({ version: 'v3', auth: authObj.client });
             let { data: movies } = await getMetadataFile(drive);
 
-            // Sorting otomatis untuk franchise movies berdasarkan part agar berurutan 1, 2, 3, 4, 5
             if (Array.isArray(movies)) {
                 movies.forEach(item => {
                     if (item.type === 'franchise' && Array.isArray(item.movies)) {
